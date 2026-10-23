@@ -67,9 +67,11 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 .bar .mono { text-align: right; font-size: 12px; }
 .bar.rest i { opacity: .35; }
 
-.setup { margin-top: 36px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; padding: 20px; }
+.setup { margin-top: 36px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; padding: 20px; }
 .field { display: grid; gap: 6px; align-content: start; }
 .field .hint { font-size: 12px; color: var(--ink-2); }
+.field.era { grid-column: 1 / -1; }
+#optEra button { font-family: var(--f-mono); font-size: 13px; }
 select { font: inherit; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 3px; background: var(--wall); color: var(--ink); }
 .seg { display: flex; border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
 .seg button { flex: 1; padding: 7px 0; border: 0; background: transparent; }
@@ -160,7 +162,6 @@ select { font: inherit; padding: 8px 10px; border: 1px solid var(--rule); border
 .end .row button { padding: 8px 16px; border: 1.5px solid var(--ink); background: transparent; border-radius: 3px; }
 .end .row button.primary { background: var(--ink); color: var(--sheet); }
 
-@media (max-width: 1040px) { .setup { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 860px) {
   .hero { grid-template-columns: minmax(0, 1fr); gap: 28px; }
   .setup { grid-template-columns: minmax(0, 1fr); }
@@ -194,13 +195,17 @@ select { font: inherit; padding: 8px 10px; border: 1px solid var(--rule); border
     </div>
 
     <div class="setup">
-      <div class="field">
-        <span class="label">出生年代</span>
+      <div class="field era">
+        <span class="label">出生年份</span>
         <div class="seg" id="optEra">
           <button type="button" data-y="1950">1950</button>
+          <button type="button" data-y="1960">1960</button>
           <button type="button" data-y="1970">1970</button>
+          <button type="button" data-y="1980">1980</button>
           <button type="button" data-y="1990">1990</button>
-          <button type="button" data-y="2026" aria-pressed="true">现在</button>
+          <button type="button" data-y="2000">2000</button>
+          <button type="button" data-y="2010">2010</button>
+          <button type="button" data-y="2016" aria-pressed="true">2016</button>
         </div>
         <span class="hint" id="eraHint">按今天的统计过完一生。</span>
       </div>
@@ -333,24 +338,45 @@ const ERAS = {
   1950: { u:11, i0:.15, i1:.015, le:66, sr:105, births:'约2000万',
     blurb:'1950年，新中国成立的第二年，全国出生约两千万人，近九成在农村，每七个婴儿就有一个活不过一岁。前面等着的是土改、大跃进、三年饥荒、文革和上山下乡。',
     hint:'会经历饥荒、文革停课、上山下乡和恢复高考。' },
+  1960: { u:20, i0:.15, i1:.015, le:69, sr:106, births:'约1400万',
+    blurb:'1960年，三年饥荒最重的一年，全国只出生了一千四百万人左右，很多婴儿没能熬过那个冬天。六岁赶上文革停课，十六岁赶上上山下乡的最后几年，十七岁正好碰上恢复高考。',
+    hint:'一出生就是饥荒，长大赶上恢复高考和下海。' },
   1970: { u:17, i0:.06, i1:.005, le:74, sr:106, births:'约2700万',
     blurb:'1970年，文革中期，一年出生两千七百多万人，是出生最多的年份之一。长大时赶上改革开放、考中专“跳农门”、南下打工和国企下岗。',
     hint:'会经历包产到户、下海、国企下岗和最严的计划生育。' },
+  1980: { u:19, i0:.04, i1:.003, le:77, sr:107, births:'约1800万',
+    blurb:'1980年，计划生育成为基本国策，“80后”的第一年，全国出生约一千八百万人。城里的孩子大多是独生子女，高考赶上扩招前的最后一年，毕业后赶上房价起飞。',
+    hint:'会经历扩招前的高考、北漂、房价起飞和35岁危机。' },
   1990: { u:26, i0:.035, i1:.002, le:78, sr:111, births:'约2400万',
     blurb:'1990年，计划生育最严的年代，城里的孩子大多是独生子女。长大时赶上大学扩招、北京奥运、房价翻了几番，2025年正好35岁。',
     hint:'会经历扩招、房价暴涨、全面二孩和35岁危机。' },
-  2026: { u:67, i0:.0045, i1:.0004, le:79, sr:110, births:'954万',
-    blurb:'去年，中国大陆出生了954万个婴儿，平均每3.3秒一个。生在哪个省、城里还是村里、户口落在哪、家里有没有钱，这些都不由自己挑。',
-    hint:'按今天的统计过完一生。' },
+  2000: { u:36, i0:.03, i1:.002, le:79, sr:117, births:'约1770万',
+    blurb:'2000年，新世纪第一年，全国出生约一千七百七十万人，出生男女比高达117:100。农村有几千万留守儿童，2018年参加高考，大学毕业正赶上疫情和青年失业率创新高。',
+    hint:'会经历留守儿童潮、疫情网课、考研考公热和就业难。' },
+  2010: { u:50, i0:.013, i1:.001, le:79.5, sr:118, births:'约1590万',
+    blurb:'2010年，城镇人口即将过半，全国出生约一千六百万人。小学赶上疫情网课和“双减”，2028年参加高考，之后的人生按今天的统计往下走。',
+    hint:'会经历疫情网课和双减，之后按今天的统计。' },
+  2016: { u:57, i0:.0075, i1:.0006, le:80, sr:113, births:'1786万',
+    blurb:'2016年，全面二孩放开的第一年，全国出生一千七百八十六万人，是近二十年最多的一年。从那以后，出生人数一年比一年少。',
+    hint:'幼儿园赶上疫情，之后的人生按今天的统计。' },
+};
+// 每个出生年份的兄弟姐妹排行分布：r 农村，u 城镇
+const ORDER = {
+  1950: { r:[22,20,18,15,13,12], u:[22,20,18,15,13,12] }, 1960: { r:[24,22,18,14,12,10], u:[26,24,20,14,10,6] },
+  1970: { r:[25,25,20,15,15], u:[30,30,20,12,8] }, 1980: { r:[40,35,25], u:[80,18,2] }, 1990: { r:[45,40,15], u:[75,23,2] },
+  2000: { r:[50,40,10], u:[82,16,2] }, 2010: { r:[45,42,13], u:[72,25,3] }, 2016: { r:[38,45,17], u:[50,44,6] },
 };
 // 人口分布（万）：1953年和1990年普查，按今天的省界粗略拆分
 const POP1953 = {四川:4600,重庆:1900,山东:4900,河南:4400,江苏:4100,河北:3600,广东:3200,海南:260,湖南:3300,安徽:3000,湖北:2800,浙江:2300,广西:2000,云南:1700,江西:1700,辽宁:1900,陕西:1600,福建:1300,山西:1400,贵州:1500,黑龙江:1200,甘肃:1100,吉林:1100,内蒙古:600,新疆:500,上海:620,北京:400,天津:300,青海:170,宁夏:150,西藏:120};
 const POP1990 = {河南:8550,山东:8440,四川:7800,重庆:2900,广东:6280,江苏:6700,河北:6100,湖南:6070,安徽:5620,湖北:5400,广西:4220,浙江:4150,辽宁:3950,云南:3700,江西:3800,贵州:3230,陕西:3290,黑龙江:3520,山西:2880,福建:3010,吉林:2470,甘肃:2240,内蒙古:2150,新疆:1520,上海:1330,北京:1080,天津:880,海南:660,宁夏:470,青海:450,西藏:220};
+// 1953、1990年普查和今天的出生分布之间按年份过渡
 function provWeights(by) {
-  if (by === 2026) return PROVS.map(p => p.n);
-  if (by === 1950) return PROVS.map(p => POP1953[p.name]);
-  if (by === 1970) return PROVS.map(p => (POP1953[p.name] + POP1990[p.name]) / 2);
-  return PROVS.map(p => POP1990[p.name]);
+  const norm = f => { const v = PROVS.map(f), t = v.reduce((a, b) => a + b, 0); return v.map(x => x / t); };
+  const a = norm(p => POP1953[p.name]), b = norm(p => POP1990[p.name]), c = norm(p => p.n);
+  const mix = (x, y, t) => x.map((v, i) => v * (1 - t) + y[i] * t);
+  if (by <= 1953) return a;
+  if (by <= 1990) return mix(a, b, (by - 1953) / 37);
+  return mix(b, c, Math.min(1, (by - 1990) / 33));
 }
 function interp(pts, x) {
   if (x <= pts[0][0]) return pts[0][1];
@@ -388,18 +414,18 @@ const store = {
 };
 
 /* ===================== 首页 ===================== */
-let speed = 1200, auto = false, eraY = 2026;
+let speed = 1200, auto = false, eraY = 2016;
 function renderEra() {
   const E = ERAS[eraY], w = provWeights(eraY), tot = w.reduce((a, b) => a + b, 0);
   const rows = PROVS.map((p, i) => [p.name, w[i] / tot]).sort((a, b) => b[1] - a[1]);
   const top = rows.slice(0, 10), rest = rows.slice(10).reduce((a, r) => a + r[1], 0), max = top[0][1];
   $('bars').innerHTML = top.map(([n, s]) => `<div class="bar"><span>${n}</span><i style="width:${(s / max * 100).toFixed(1)}%"></i><span class="mono">${(s * 100).toFixed(1)}%</span></div>`).join('')
     + `<div class="bar rest"><span>其余21个</span><i style="width:100%;opacity:.25"></i><span class="mono">${(rest * 100).toFixed(1)}%</span></div>`;
-  $('barsTitle').textContent = eraY === 2026 ? '如果你是此刻出生的婴儿' : `如果你出生在${eraY}年`;
-  $('barsLabel').textContent = eraY === 2026 ? '各省出生人数占比 · 约数' : `各省人口占比 · 按${eraY < 1990 ? '1953' : '1990'}年普查 · 约数`;
+  $('barsTitle').textContent = `如果你出生在${eraY}年`;
+  $('barsLabel').textContent = '各省出生地占比 · 按普查和统计公报推算 · 约数';
   $('lede').textContent = E.blurb;
   $('eraHint').textContent = E.hint;
-  $('eraNote').textContent = eraY === 2026 ? '2024 年出生 954 万，死亡 1093 万，人口连续第三年减少。' : `${eraY}年全国出生${E.births}，城镇人口约占${E.u}%。上面的计数器是今天的。`;
+  $('eraNote').textContent = `${eraY}年全国出生${E.births}，城镇人口约占${E.u}%。上面的计数器是今天的：2024 年出生 954 万，死亡 1093 万。`;
   $('optEra').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.y === eraY));
 }
 (function intro() {
@@ -442,6 +468,7 @@ const GN = {
           f: ['若汐','一诺','艺涵','依诺','梓涵','苡沫','雨桐','欣怡','语桐','语汐','沐瑶','可欣','思涵','诗琪','梦瑶','佳怡','子涵','欣妍','安然','婷','静','慧','佳琪','雨萱','诗涵','梓萱','晨曦','思琪'] },
   1990: { m: ['伟','磊','浩','杰','鑫','超','帅','鹏','宇','俊','涛','昊天','晨','阳','志强','建华','文杰','俊杰'], f: ['婷','静','丹','敏','雪','倩','颖','佳','欣','璐','晶晶','婷婷','丹丹','倩倩','丽娟','雪梅'] },
   1970: { m: ['卫东','红军','建军','伟','军','勇','强','斌','卫国','志强','永红','向东','建平','海军','国平','建新'], f: ['红','丽','艳','红梅','卫红','丽华','秀梅','海燕','春梅','建红','小红','丽娟','艳红','红霞','卫华'] },
+  2000: { m: ['子豪','浩然','俊杰','宇轩','浩宇','子轩','鑫','博文','家乐','思远','一凡','皓轩'], f: ['欣怡','梓涵','雨欣','佳怡','诗涵','可馨','雨涵','子涵','紫涵','欣妍','雨萱','佳琪'] },
   1950: { m: ['建国','国庆','建华','援朝','卫国','振华','志刚','德明','解放','和平','长生','福生','国强','玉山','新民'], f: ['秀英','桂兰','玉兰','淑珍','凤英','桂芳','秀兰','玉梅','素芬','翠花','爱华','建英','秀珍','桂英','凤兰'] },
 };
 function makeName(male, eth, by) {
@@ -450,7 +477,8 @@ function makeName(male, eth, by) {
   if (eth === '哈萨克族') return pick(male ? ['叶尔兰','努尔兰','别克','叶尔肯'] : ['阿依达娜','阿依古丽','娜孜古丽','古丽米拉']) + '·' + pick(['别克','努尔兰','叶尔肯','哈力克']);
   if (eth === '蒙古族' && R() < .5) return pick(male ? ['巴特尔','苏和','额尔敦','朝鲁','宝音'] : ['其其格','萨仁','乌兰','娜仁','塔娜']);
   const w = [...SURN].map((_, i) => i < 5 ? 7 : i < 20 ? 2.2 : 0.9);
-  return wpick([...SURN], w) + pick(GN[by][male ? 'm' : 'f']);
+  const key = by <= 1960 ? 1950 : by <= 1975 ? 1970 : by <= 1995 ? 1990 : by <= 2005 ? 2000 : 2026;
+  return wpick([...SURN], w) + pick(GN[key][male ? 'm' : 'f']);
 }
 
 function placeName(p) {
@@ -493,7 +521,7 @@ const PARENTS = {
 };
 
 function start(forceProv, by) {
-  by = by || 2026;
+  by = by || 2016;
   clearTimeout(timer);
   const E = ERAS[by];
   const pv = forceProv ? PV[forceProv] : wpick(PROVS, provWeights(by));
@@ -502,7 +530,7 @@ function start(forceProv, by) {
   p.eth = pickEth(pv.name);
   p.name = makeName(p.male, p.eth, by);
   // 城乡和城市级别
-  const u = by === 2026 ? pv.u : pv.u * E.u / 67;
+  const u = pv.u * E.u / 67;
   if (R() * 100 >= u) p.locale = '农村';
   else if (['北京','上海'].includes(pv.name)) p.locale = '一线城市';
   else if (pv.name === '广东') p.locale = wpick(['一线城市','地级市','县城'], [.45, .35, .2]);
@@ -510,30 +538,28 @@ function start(forceProv, by) {
   else p.locale = wpick(['省会','地级市','县城'], [.3, .4, .3]);
   p.city = p.locale === '一线城市' && pv.name === '广东' ? (by < 1990 ? '广州' : pick(['深圳','广州'])) : pick(pv.cities);
   // 户口
-  const migP = ({ '一线城市':.42, '省会':.25, '地级市':.14, '县城':.08, '农村':0 }[p.locale]) * (by < 1990 ? 0 : by === 1990 ? .25 : 1);
+  const migP = ({ '一线城市':.42, '省会':.25, '地级市':.14, '县城':.08, '农村':0 }[p.locale]) * interp([[1985,0],[1990,.25],[2000,.6],[2010,.9],[2016,1]], by);
   if (R() < migP) {
     const hp = wpick(SENDERS.map(s => s[0]), SENDERS.map(s => s[1]));
     p.hukou = { prov: hp, city: pick(PV[hp].cities), rural: true, local: false };
   } else p.hukou = { prov: pv.name, city: p.city, rural: p.locale === '农村', local: true };
   const kind = !p.hukou.local ? '外地' : p.locale === '农村' ? '农村' : '城';
-  const cw = by < 1990 ? (kind === '农村' ? [40,30,22,5,3] : [20,40,25,10,5])
+  const cw = by < 1985 ? (kind === '农村' ? [40,30,22,5,3] : [20,40,25,10,5])
     : ({ 一线城市:[5,10,25,30,30], 省会:[8,17,25,27,23], 地级市:[12,20,25,25,18], 县城:[18,24,25,20,13], 农村:[35,28,20,12,5] }[p.locale]);
   p.cls = wpick([1,2,3,4,5], kind === '外地' ? [25,35,25,12,3] : cw);
   if (by <= 1970) { p.cf = CF[kind === '农村' ? '农村' : '城'][p.cls - 1]; p.bad = ['富农','地主','资本家'].includes(p.cf); }
   const rural = p.locale === '农村';
-  p.order = by === 1950 ? wpick([1,2,3,4,5,6], [22,20,18,15,13,12])
-    : by === 1970 ? wpick([1,2,3,4,5], [25,25,20,15,15])
-    : by === 1990 ? (rural ? wpick([1,2,3], [.45,.4,.15]) : wpick([1,2,3], [.75,.23,.02]))
-    : wpick([1,2,3], rural ? [.4,.42,.18] : [.55,.38,.07]);
-  p.fam = [3e4, 1.2e5, 3.5e5, 9e5, 3e6][p.cls - 1] * ({ 一线城市:2.5, 省会:1.4, 地级市:1, 县城:.7, 农村:.45 }[p.locale]) * (kind === '外地' ? .6 : 1) * (by === 2026 ? 1 : wageIdx(by + 25));
+  const ow = ORDER[by][rural ? 'r' : 'u'];
+  p.order = wpick(ow.map((_, i) => i + 1), ow);
+  p.fam = [3e4, 1.2e5, 3.5e5, 9e5, 3e6][p.cls - 1] * ({ 一线城市:2.5, 省会:1.4, 地级市:1, 县城:.7, 农村:.45 }[p.locale]) * (kind === '外地' ? .6 : 1) * wageIdx(by + 25);
   const locB = { 一线城市:8, 省会:5, 地级市:2, 县城:0, 农村:-5 }[p.locale];
   p.edu = clamp(48 + (p.cls - 3) * 5 + locB + gauss() * 12, 5, 95);
-  p.health = clamp(76 + p.cls * 1.5 + gauss() * 6 - (by === 1950 ? 4 : 0), 40, 98);
+  p.health = clamp(76 + p.cls * 1.5 + gauss() * 6 - (by === 1950 ? 4 : by === 1960 ? 6 : 0), 40, 98);
   p.happy = 62;
-  p.le = (by === 2026 ? pv.le : E.le + (pv.le - 79) * .8) + (p.male ? -2.7 : 2.8);
-  const k = by === 2026 ? 1 : rural ? 1.2 : .6;
+  p.le = E.le + (pv.le - 79) * .8 + (p.male ? -2.7 : 2.8);
+  const k = by >= 2000 ? 1 : rural ? 1.2 : .6;
   p.inf = { i0: E.i0 * k, i1: E.i1 * k };
-  p.gompA = calibrate(p.le + 3 + (by === 1950 ? 5 : 0), p.inf); // 抵消一生里各种损耗健康的事件（1950年这一代还有饥荒），让平均寿命落在这一代的水平
+  p.gompA = calibrate(p.le + 3 + (by === 1950 ? 5 : by === 1960 ? 3 : 0), p.inf); // 抵消一生里各种损耗健康的事件（1950年这一代还有饥荒），让平均寿命落在这一代的水平
   p.stage = '童年'; p.degree = '—'; p.job = null; p.workProv = pv.name; p.workLoc = p.locale;
   P = p; pending = null; paused = false; curEvs = null;
 
@@ -542,14 +568,14 @@ function start(forceProv, by) {
   window.scrollTo(0, 0);
 
   newYear();
-  const jin = 6.5 + gauss() * .8 - (by === 1950 ? .6 : 0);
+  const jin = 6.5 + gauss() * .8 - (by === 1950 ? .6 : by === 1960 ? .9 : 0);
   log(`出生在${placeName(p)}。是个${p.male ? '男孩' : '女孩'}，${Math.floor(jin)}斤${Math.round((jin % 1) * 10)}两。${by < 1990 && rural ? '是接生婆在家里接生的。' : ''}`, 'big');
-  log(pick(PARENTS[by][kind][p.cls - 1]));
+  log(pick(PARENTS[by <= 1955 ? 1950 : by <= 1975 ? 1970 : by <= 1995 ? 1990 : 2026][kind][p.cls - 1]));
   if (p.cf) log(`家庭成分：${p.cf}。${p.bad ? '这两个字以后会跟着你很多年。' : ''}`, p.bad ? 'bad' : 'quiet');
   if (!p.hukou.local) log(`户口没法落在这里，跟着父母落在${p.hukou.prov}${p.hukou.city}的农村老家。`);
   if (p.order > 1) log(`家里排行老${'二三四五六'[p.order - 2]}，上面有${'一两三四五'[p.order - 2]}个哥哥姐姐。`, 'quiet');
-  else if (by === 1990 && !rural) log('是独生子女，家里领了《独生子女证》。', 'quiet');
-  else if (by === 2026 && R() < .35) log('是家里第一个孩子，也可能是唯一一个。', 'quiet');
+  else if (by >= 1980 && by < 2016 && !rural) log('是独生子女，家里领了《独生子女证》。', 'quiet');
+  else if (by === 2016) log('是家里第一个孩子。这一年全面二孩放开，后面可能还会有弟弟妹妹。', 'quiet');
   if (by <= 1970 && R() < .7) log('后面还会有弟弟妹妹。', 'quiet');
   if (p.eth !== '汉族') log(`民族一栏写的是${p.eth}。`, 'quiet');
   p.bio.push(`${by}年出生在${shortPlace(p)}一个家境${CLS[p.cls - 1]}的家庭${p.cf ? `，成分${p.cf}` : ''}${!p.hukou.local ? `，户口在${p.hukou.prov}老家` : ''}`);
@@ -793,7 +819,10 @@ function history(p) {
   }
   if (y === 2020 && a >= 3) H('新冠疫情暴发，春节被困在家里，出门要扫健康码。');
   if (y === 2021 && p.kidsAges.some(x => x >= 6 && x <= 15)) H('“双减”政策出台，孩子的课外补习班都停了。');
+  if (y === 2020 && a >= 3 && a <= 18) log('疫情期间在家上了好几个月网课。', 'quiet');
+  if (y === 2021 && a >= 6 && a <= 15) H('“双减”政策出台，校外的学科补习班都停了，作业也少了。');
   if (y === 2022 && a >= 3) H('年底防疫放开，身边的人几乎都“阳”了一遍。');
+  if (y === 2023 && a >= 20 && a <= 26) H('16到24岁的青年失业率超过两成，考公考编成了最热门的出路。');
   if (y === 2025 && working) log('渐进式延迟退休开始施行。', 'quiet');
 }
 const homeLoc = p => p.locale === '农村' ? '县城' : p.locale;
@@ -874,9 +903,9 @@ function milestones(p) {
   if (a === 12) return stMiddle(p);
   if (p.stage === '放牛' && a === 14) { setJob(p, '务农', p.prov, '农村'); log(p.year < 1982 ? '开始在生产队挣工分，一天七八个工分。' : '开始下地干活。'); return; }
   if (a === 15 && p.stage === '初中') return stZhongkao(p);
-  if (a === 18 && p.stage === '高中') return stGaokao(p);
+  if (a >= 18 && p.stage === '高中') return stGaokao(p); // 错过18岁那年（比如那年在考恢复高考）也能接着考
   if (p.stage === '复读' && a === p.retakeAge) return stGaokao(p, true);
-  if (a === 18 && p.stage === '职高') return stVocGrad(p);
+  if (a >= 18 && p.stage === '职高') return stVocGrad(p);
   if (p.stage === '大学' && a === p.gradAge) return stGraduate(p);
   if (p.stage === '研究生' && a === p.gradAge) return stGraduate(p, true);
   if (p.stage === '当兵' && a === p.gradAge) return stVeteran(p);
@@ -891,7 +920,7 @@ function milestones(p) {
   const early = p.by <= 1970;
   if (!p.married && !p.noMarry && a >= 20 && a <= 45 && (p.stage === '工作' || a >= (early ? 22 : 26))) {
     if (a === (early ? 25 : 28) && !p.askedMarry) return stMarryPressure(p);
-    const base = (p.male ? .11 : .15) * (p.blind ? 2.2 : 1) * (p.male && p.cls <= 2 && p.locale === '农村' ? .55 : 1) * (a > 35 ? .5 : 1) * (early ? 2 : p.by === 1990 ? 1.2 : 1);
+    const base = (p.male ? .11 : .15) * (p.blind ? 2.2 : 1) * (p.male && p.cls <= 2 && p.locale === '农村' ? .55 : 1) * (a > 35 ? .5 : 1) * interp([[1970,2],[1980,1.4],[1990,1.2],[2000,1]], p.by);
     if (R() < base) return stMarry(p);
   }
   if (p.married && !p.widowed && !p.askedKids && a >= p.marryAge + 1) return stKids(p);
@@ -911,9 +940,9 @@ function milestones(p) {
 
 function stKinder(p) {
   if (p.by < 1990) { log(p.locale === '农村' ? '没上过幼儿园，跟着哥哥姐姐在田埂上玩。' : '白天被送到单位的托儿所。', 'quiet'); return; }
-  if (p.locale === '农村' && p.hukou.local && R() < (p.by === 1990 ? .15 : .35)) {
+  if (p.locale === '农村' && p.hukou.local && R() < interp([[1990,.15],[2000,.35],[2010,.38],[2016,.3]], p.by)) {
     p.leftBehind = true; p.happy -= 6;
-    log(`爸妈去${pick(p.by === 1990 ? ['东莞','深圳','广州','温州'] : ['东莞','深圳','苏州','杭州','温州','广州','厦门'])}打工了，你留在村里跟爷爷奶奶过。一年见一次，在过年的时候。`, 'big');
+    log(`爸妈去${pick(p.by < 2000 ? ['东莞','深圳','广州','温州'] : ['东莞','深圳','苏州','杭州','温州','广州','厦门'])}打工了，你留在村里跟爷爷奶奶过。一年见一次，在过年的时候。`, 'big');
     p.bio.push('小时候是留守儿童，跟爷爷奶奶长大');
   } else if (!p.hukou.local) log('跟着爸妈住在城中村，上的是一家没有证的民办幼儿园。');
   else log(p.cls >= 4 && p.year >= 2010 ? '上了一家双语幼儿园，一学期学费好几万。' : p.locale === '农村' ? '在村里的幼儿园上学，一个班四十多个孩子。' : '上了家门口的公立幼儿园。');
@@ -921,7 +950,7 @@ function stKinder(p) {
 
 function stPrimary(p) {
   if (p.by < 1990) {
-    if (p.locale === '农村' && !p.male && R() < (p.by === 1950 ? .4 : .1)) { p.noSchool = true; p.stage = '放牛'; p.edu -= 20; p.degree = '文盲'; log('家里没让上学，在家带弟弟妹妹、捡柴、放牛。', 'big'); p.bio.push('没上过学'); return; }
+    if (p.locale === '农村' && !p.male && R() < interp([[1950,.4],[1960,.25],[1970,.1],[1980,.04]], p.by)) { p.noSchool = true; p.stage = '放牛'; p.edu -= 20; p.degree = '文盲'; log('家里没让上学，在家带弟弟妹妹、捡柴、放牛。', 'big'); p.bio.push('没上过学'); return; }
     p.stage = '小学';
     log(p.locale === '农村' ? '上了村小，几个年级挤在一间土坯房里，学费一学期两块钱。' : '上小学了，戴上了红领巾。');
     return;
@@ -948,8 +977,8 @@ function stMiddle(p) {
   if (p.noSchool || p.stage !== '小学') return;
   p.degree = '小学';
   if (p.year < 2000) {
-    if ((p.locale === '农村' || p.cls <= 1) && R() < (p.by === 1950 ? .6 : .4)) {
-      return ask('小学毕业', p.by === 1950 ? '镇上的初中要考，考上了也得住校、自己背口粮。' : '家里劳力不够，大人说念书没用，不如早点回来干活。', [
+    if ((p.locale === '农村' || p.cls <= 1) && R() < interp([[1950,.6],[1970,.4],[1985,.3]], p.by)) {
+      return ask('小学毕业', p.by <= 1960 ? '镇上的初中要考，考上了也得住校、自己背口粮。' : '家里劳力不够，大人说念书没用，不如早点回来干活。', [
         { l: '接着念初中', n: '', w: p.edu > 55 ? 3 : 1, f: () => { p.stage = '初中'; log(p.locale === '农村' ? '上了镇上的初中，每周背着一袋红薯和咸菜去学校。' : '接着上了初中，学费是家里省出来的。'); } },
         { l: '回家干活', n: '', w: 2, f: () => { if (p.locale === '农村') { setJob(p, '务农', p.prov, '农村'); log(p.year < 1982 ? '回家在生产队挣工分。' : '回家帮着种地。'); p.bio.push('小学毕业就回家干活'); } else { p.stage = '打工'; p.jobAt = p.age + 4; log('不念了，在家待着帮忙。'); } } },
       ]);
@@ -984,7 +1013,7 @@ function stZhongkao(p) {
 function zhongkaoResult(p) {
   const y = p.year;
   const bonus = { 一线城市:.6, 省会:.35, 地级市:.1, 县城:0, 农村:-.3 }[p.locale];
-  const shift = y <= 1990 ? -1.6 : y <= 2000 ? -1 : y <= 2008 ? -.7 : 0;
+  const shift = y <= 1990 ? -1.6 : y <= 2000 ? -.7 : y <= 2008 ? -.7 : 0;
   const pr = sig((p.edu - 52) / 7 + bonus + shift);
   const score = Math.round(clamp(300 + p.edu * 3.6 + gauss() * 25, 200, 700));
   if (R() < pr) {
@@ -1008,7 +1037,7 @@ const tierName = (tier, y) => y < 1998 ? { '985':'重点大学', '211':'重点�
 function stGaokao(p, retake) {
   const y = p.year, s = gaokaoScore(p);
   // 扩招以前大学很难考：同样的成绩，录取线高得多
-  const sh = y <= 1990 ? 16 : y <= 1998 ? 18 : y <= 2004 ? 14 : y <= 2010 ? 16 : y <= 2018 ? 5 : 0;
+  const sh = y <= 1990 ? 16 : y <= 1998 ? 11 : y <= 2004 ? 14 : y <= 2010 ? 16 : y <= 2018 ? 5 : 0;
   const tB = 55 + sh, tZ = 40 + sh, t985 = Math.max(80, tB + 6), t211 = Math.max(70, tB + 3);
   const pts = Math.round(clamp(330 + s * 4.1, 180, 735));
   const tier = s >= t985 ? '985' : s >= t211 ? '211' : s >= tB ? '本科' : s >= tZ ? '专科' : '落榜';
@@ -1297,7 +1326,7 @@ function overQuota(p) {
 function stParents(p) {
   p.parentsDone = true;
   const who = R() < .55 ? '父亲' : '母亲', k = wageIdx(p.year);
-  const only = p.order === 1 && p.by >= 1990 && R() < .6;
+  const only = p.order === 1 && p.by >= 1980 && R() < .6;
   log(`${who}${pick(['突发脑梗', '查出了癌症', '摔了一跤股骨颈骨折', '确诊了阿尔茨海默病'])}，需要人长期照顾。`, 'bad');
   ask('照顾父母', only ? '你是独生子女，没有人能分担。' : '', [
     { l: '辞职回去照顾', n: '收入断了，心里踏实', w: 1, ok: p.stage === '工作', f: () => { p.happy -= 6; p.money -= p.income * 1.5; p.health -= 4; log(`辞了职回家，照顾了${who}两年多。`); p.bio.push(`中年时辞职回家照顾生病的${who}`); } },
