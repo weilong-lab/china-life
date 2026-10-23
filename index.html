@@ -178,7 +178,7 @@ select { font: inherit; padding: 8px 10px; border: 1px solid var(--rule); border
   <section id="intro">
     <div class="hero">
       <div>
-        <div class="label">中国大陆 31 个省区市 · 按真实统计随机出生 · 16 岁以上</div>
+        <div class="label">中国大陆 31 个省区市和港澳台 · 按真实统计随机出生 · 16 岁以上</div>
         <h1 style="margin-top:12px">中国人的<em>一生</em></h1>
         <p class="lede"><span id="lede"></span>投一次胎，从出生证明开始，把这个人的一辈子过完。</p>
         <div class="counters">
@@ -212,7 +212,7 @@ select { font: inherit; padding: 8px 10px; border: 1px solid var(--rule); border
       <div class="field">
         <span class="label">出生地</span>
         <select id="optProv"><option value="">按真实出生比例随机</option></select>
-        <span class="hint">想看看“如果我生在别的省”，就指定一个。</span>
+        <span class="hint">想看看“如果我生在别处”，就指定一个省，或者香港、澳门、台湾。</span>
       </div>
       <div class="field">
         <span class="label">一年过多快</span>
@@ -231,7 +231,7 @@ select { font: inherit; padding: 8px 10px; border: 1px solid var(--rule); border
     </div>
     <div class="go-row">
       <button class="btn-go" id="btnGo" type="button">投胎</button>
-      <p class="warn-line">疾病、事故、裁员、离婚和亲人离世都会照统计发生，不描写细节。数字是根据公开统计做的近似，不是对任何一个人的预测。</p>
+      <p class="warn-line">疾病、事故、裁员、离婚、被骗、坐牢和亲人离世都会照统计发生，不描写细节。数字是根据公开统计做的近似，不是对任何一个人的预测。</p>
     </div>
 
     <div class="facts">
@@ -250,6 +250,7 @@ select { font: inherit; padding: 8px 10px; border: 1px solid var(--rule); border
       <h3>这些数字从哪来</h3>
       <div>各省出生人数、城镇化率、人均可支配收入来自国家统计局和各省 2023–2024 年统计公报；分省预期寿命参考第七次人口普查及各省卫健委公报；高考难度是按各省本科录取率粗略分档；房价是 2024 年前后省会新房均价的约数；彩礼是媒体报道的各地常见区间；养育成本参考《中国生育成本报告》（育娲人口研究，2024）；退休年龄按 2025 年起施行的渐进式延迟退休规定；城乡居民基础养老金按 2025 年水平。死因按中国疾控死因监测的年龄模式。</div>
       <div>选过去的年代时，出生地按 1953 年或 1990 年普查的人口分布抽，城镇化率、婴儿死亡率、升学率和生育政策换成当年的水平，三年饥荒、文革、上山下乡、恢复高考、包产到户、国企下岗、福利分房、大学扩招这些事会按年份和身份发生。所有金额都按今天的购买力折算。</div>
+      <div>香港、澳门、台湾按各自的出生人数参与抽签，走各自的教育、就业、住房和养老制度，金额折合人民币。考公考编按近年的报录比，考研按报考和录取人数，成人高考、自考、网络教育和留学去向按教育部门公布的规模，诈骗和犯罪按公安、法院公布的案件规模，都做了简化。</div>
       <div>所有数字都做了简化，只为让一生的大致走向贴近现实。选择会改变这个人的命运，但很难完全摆脱出生时拿到的那张牌。</div>
     </div>
   </section>
@@ -330,7 +331,7 @@ const SENDERS = [['河南',16],['安徽',12],['四川',11],['湖南',10],['江�
 const NAT_WAGE = 68000;     // 城镇私营单位平均工资（约）
 const NAT_INC = 39218;      // 全国人均可支配收入（2023）
 const CITYF = { '一线城市':1.9, '省会':1.25, '地级市':1, '县城':.8, '农村':.6 };
-const KIDCOST = { '一线城市':56000, '省会':35000, '地级市':28000, '县城':22000, '农村':16000 }; // 今天养一个孩子每年的花费
+const KIDCOST = { '一线城市':56000, '省会':35000, '地级市':28000, '县城':22000, '农村':16000, '香港':120000, '澳门':90000, '台湾':60000, '海外':90000 }; // 今天养一个孩子每年的花费
 const RESIDENT_PENSION = 230; // 城乡居民养老金 元/月（约）
 
 // 出生年代。u 全国城镇化%，i0/i1 婴儿/1–4岁的年死亡率，le 这一代人的出生预期寿命（约），sr 出生男女比
@@ -392,6 +393,59 @@ const FAMINE = { 安徽:3, 四川:3, 重庆:3, 贵州:2.5, 甘肃:2.5, 河南:2,
 const CF = { 农村:['贫农','下中农','中农','富农','地主'], 城:['城市贫民','工人','职员','小业主','资本家'] };
 const UNIT_JOBS = ['公务员','事业编','教师','医生','国企职员','工程师'];
 
+// 港澳台。b 各出生年份的出生人数（万），le/i0 出生预期寿命和婴儿死亡率，wage 今天的年工资中位数（折合人民币）
+// hp 每平米房价（人民币），area 常见住房面积，wi/hpi 工资和房价相对今天的水平，kid 今天养一个孩子每年的花费
+const SAR = {
+  香港: { b:{1950:7,1960:10.7,1970:8,1980:8.5,1990:6.8,2000:5.4,2010:8.8,2016:6.1},
+    le:[[1950,79],[1980,84],[2016,86]], i0:[[1950,.08],[1960,.04],[1970,.02],[1980,.011],[1990,.006],[2000,.003],[2016,.0015]],
+    wage:190000, w:[[1950,.1],[1970,.2],[1980,.38],[1990,.6],[1997,.85],[2010,.9],[2026,1]],
+    hp:150000, area:45, hpi:[[1970,.08],[1985,.12],[1997,.55],[2003,.25],[2010,.55],[2018,1.1],[2026,.85]],
+    places:['深水埗','沙田','天水围','观塘','东区','屯门','九龙城','元朗'], id:'香港永久性居民', kid:120000 },
+  澳门: { b:{1950:.6,1960:.5,1970:.4,1980:.4,1990:.7,2000:.4,2010:.5,2016:.7},
+    le:[[1950,78],[1980,81],[2016,84]], i0:[[1950,.08],[1960,.04],[1970,.02],[1980,.012],[1990,.006],[2000,.003],[2016,.002]],
+    wage:160000, w:[[1950,.08],[1980,.3],[1999,.45],[2010,.85],[2026,1]],
+    hp:90000, area:60, hpi:[[1990,.1],[2003,.12],[2013,.9],[2026,.75]],
+    places:['澳门半岛','氹仔','路环'], id:'澳门永久性居民', kid:90000 },
+  台湾: { b:{1950:32,1960:42,1970:39,1980:41,1990:33.5,2000:30.5,2010:16.7,2016:20.8},
+    le:[[1950,75],[1980,79],[2016,81]], i0:[[1950,.04],[1960,.03],[1970,.017],[1980,.01],[1990,.006],[2016,.004]],
+    wage:110000, w:[[1950,.06],[1970,.15],[1980,.3],[1990,.6],[2000,.85],[2010,.9],[2026,1]],
+    hp:30000, area:80, hpi:[[1970,.1],[1990,.35],[2000,.3],[2010,.55],[2026,1]],
+    places:['台北','新北','桃园','台中','台南','高雄','彰化','屏东','花莲','南投'], id:'台湾户籍', kid:60000 },
+};
+for (const s of Object.values(SAR)) s.wi = y => interp(s.w, y);
+const MAINLAND_B = { 1950:2000, 1960:1400, 1970:2700, 1980:1800, 1990:2400, 2000:1770, 2010:1590, 2016:1786 };
+const BIRTHPLACES = PROVS.map(p => p.name).concat(Object.keys(SAR));
+function birthWeights(by) {
+  const w = provWeights(by), tot = w.reduce((a, b) => a + b, 0);
+  return w.map(x => x / tot * MAINLAND_B[by]).concat(Object.values(SAR).map(s => s.b[by]));
+}
+// 按工作地取工资水平
+const W = (p, y) => { const s = SAR[p.workProv]; return s ? s.wi(y) : wageIdx(y); };
+
+// 考公考编：ratio 大致报录比，need 学历门槛，top 只招名校，fresh 只招应届
+const EXAMS = {
+  国考省考: { name:'公务员', ratio:70, need:'大专', note:'近年国考过审三百多万人，招不到四万' },
+  选调生: { name:'公务员', ratio:12, need:'本科', top:true, fresh:true, note:'只招“双一流”名校的应届生，进去就是重点培养' },
+  事业编: { name:'事业编', ratio:35, need:'大专', note:'医院、学校、街道下面的各种单位' },
+  教师编: { name:'教师', ratio:20, need:'本科', note:'要先考教师资格证' },
+  军队文职: { name:'军队文职', ratio:25, need:'本科', note:'在部队上班但不是军人，福利接近公务员' },
+  三支一扶: { name:'三支一扶', ratio:8, need:'大专', fresh:true, note:'去乡镇支教、支农、支医、帮扶两年，期满考编有专项岗' },
+};
+// 出国留学：cost 总花费，yrs 年限，stay 能留下工作的概率，wage 留下后的年收入，back 回国后工资的加成
+const ABROAD = {
+  美国: { cost:100e4, yrs:2, stay:.3, wage:50e4, back:1.35 },
+  英国: { cost:40e4, yrs:1, stay:.12, wage:30e4, back:1.15 },
+  香港: { cost:30e4, yrs:1, stay:.25, wage:25e4, back:1.15 },
+  澳大利亚: { cost:70e4, yrs:2, stay:.3, wage:35e4, back:1.1 },
+  加拿大: { cost:60e4, yrs:2, stay:.35, wage:32e4, back:1.1 },
+  新加坡: { cost:35e4, yrs:1, stay:.2, wage:35e4, back:1.15 },
+  日本: { cost:25e4, yrs:2, stay:.25, wage:22e4, back:1.05 },
+  德国: { cost:20e4, yrs:2, stay:.3, wage:30e4, back:1.1 },
+  马来西亚: { cost:12e4, yrs:1, stay:.05, wage:10e4, back:.95 },
+};
+const PUBLIC_JOBS = ['公务员','事业编','教师','医生','国企职员','军队文职','三支一扶','香港公务员','澳门公务员','台湾公务员','台湾教师'];
+
+
 /* ===================== 工具 ===================== */
 const R = Math.random;
 const pick = a => a[Math.floor(R() * a.length)];
@@ -416,11 +470,11 @@ const store = {
 /* ===================== 首页 ===================== */
 let speed = 1200, auto = false, eraY = 2016;
 function renderEra() {
-  const E = ERAS[eraY], w = provWeights(eraY), tot = w.reduce((a, b) => a + b, 0);
-  const rows = PROVS.map((p, i) => [p.name, w[i] / tot]).sort((a, b) => b[1] - a[1]);
+  const E = ERAS[eraY], w = birthWeights(eraY), tot = w.reduce((a, b) => a + b, 0);
+  const rows = BIRTHPLACES.map((n, i) => [n, w[i] / tot]).sort((a, b) => b[1] - a[1]);
   const top = rows.slice(0, 10), rest = rows.slice(10).reduce((a, r) => a + r[1], 0), max = top[0][1];
   $('bars').innerHTML = top.map(([n, s]) => `<div class="bar"><span>${n}</span><i style="width:${(s / max * 100).toFixed(1)}%"></i><span class="mono">${(s * 100).toFixed(1)}%</span></div>`).join('')
-    + `<div class="bar rest"><span>其余21个</span><i style="width:100%;opacity:.25"></i><span class="mono">${(rest * 100).toFixed(1)}%</span></div>`;
+    + `<div class="bar rest"><span>其余${rows.length - 10}个</span><i style="width:100%;opacity:.25"></i><span class="mono">${(rest * 100).toFixed(1)}%</span></div>`;
   $('barsTitle').textContent = `如果你出生在${eraY}年`;
   $('barsLabel').textContent = '各省出生地占比 · 按普查和统计公报推算 · 约数';
   $('lede').textContent = E.blurb;
@@ -430,7 +484,11 @@ function renderEra() {
 }
 (function intro() {
   const sel = $('optProv');
-  [...PROVS].sort((a, b) => a.name.localeCompare(b.name, 'zh')).forEach(p => sel.add(new Option(p.name, p.name)));
+  const g1 = document.createElement('optgroup'), g2 = document.createElement('optgroup');
+  g1.label = '大陆'; g2.label = '港澳台';
+  [...PROVS].sort((a, b) => a.name.localeCompare(b.name, 'zh')).forEach(p => g1.appendChild(new Option(p.name, p.name)));
+  Object.keys(SAR).forEach(n => g2.appendChild(new Option(n, n)));
+  sel.append(g1, g2);
   const t0 = Date.now();
   setInterval(() => {
     const s = (Date.now() - t0) / 1000;
@@ -482,6 +540,7 @@ function makeName(male, eth, by) {
 }
 
 function placeName(p) {
+  if (p.region) return p.region + p.city;
   const pv = PV[p.prov], c = p.city;
   if (p.locale === '一线城市') return pv.name === '广东' ? c : `${pv.name}${c}区`;
   if (p.locale === '省会') return pv.cap;
@@ -490,6 +549,7 @@ function placeName(p) {
   return ['北京','上海','天津'].includes(pv.name) ? `${pv.name}郊区的农村` : `${pv.name}${c}的农村`;
 }
 function shortPlace(p) {
+  if (p.region) return p.region;
   const pv = PV[p.prov];
   if (p.locale === '一线城市') return pv.name === '广东' ? p.city : pv.name;
   if (p.locale === '省会') return pv.cap;
@@ -524,7 +584,9 @@ function start(forceProv, by) {
   by = by || 2016;
   clearTimeout(timer);
   const E = ERAS[by];
-  const pv = forceProv ? PV[forceProv] : wpick(PROVS, provWeights(by));
+  const where = forceProv || wpick(BIRTHPLACES, birthWeights(by));
+  if (SAR[where]) return startRegion(where, by);
+  const pv = PV[where];
   const p = { by, prov: pv.name, year: by, age: 0, alive: true, bio: [], money: 0, income: 0, lifeIncome: 0, kids: 0, kidsAges: [], married: false, hist: [] };
   p.male = R() < E.sr / (E.sr + 100);
   p.eth = pickEth(pv.name);
@@ -616,12 +678,13 @@ function render() {
   const rows = [
     ['性别', (p.male ? '男' : '女') + ' · ' + p.eth],
     ['出生', `${p.by} · ${placeName(p).replace('下面的一个', '的')}`],
-    ['户口', hk],
+    [p.region ? '身份' : '户口', p.region ? SAR[p.region].id : hk],
     ['家境', CLS[p.cls - 1]],
     ...(p.cf ? [['成分', p.cf + (p.year >= 1979 ? '（已不再提）' : '')]] : []),
     ['学历', p.degree],
     ['职业', p.job ? p.job.name : (p.stage === '退休' ? '已退休' : p.stage)],
     ['工作地', p.job ? workPlace(p) : '—'],
+    ...(p.record ? [['案底', p.crimes.join('、')]] : []),
     ['婚姻', p.married ? (p.widowed ? '丧偶' : '已婚') : p.divorced ? '离异' : p.noMarry ? '不婚' : '未婚'],
     ['子女', p.kids ? `${p.kids}个` : '无'],
     ['住房', p.house || '—'],
@@ -635,6 +698,8 @@ function render() {
 }
 function workPlace(p) {
   if (p.job && p.job.name === '知青') return p.zq;
+  if (p.workLoc === '海外') return p.workCity;
+  if (SAR[p.workLoc]) return p.workLoc;
   if (p.workLoc === '一线城市') return p.workProv === '广东' ? (p.workCity || '深圳') : p.workProv;
   if (p.workLoc === '省会') return PV[p.workProv].cap;
   if (p.workLoc === '农村') return `${p.workProv}农村`;
@@ -687,6 +752,7 @@ function step() {
   if (deathCheck(p)) return;
   history(p);
   if (!pending && p.alive) milestones(p);
+  if (!pending && p.alive) darkSide(p);
   if (!pending && p.alive) flavor(p);
   if (p.alive && p.happy < 22 && !p.dep && p.age >= 14 && R() < .25) { p.dep = true; log(p.year < 1990 ? '有很长一段时间整夜睡不着，什么都提不起劲，身边的人只说是“想不开”。' : '这段时间总是睡不着，什么都提不起劲。后来去医院看，确诊了抑郁症，开始吃药。', 'bad'); helpLine(); p.happy += 8; }
   render();
@@ -709,11 +775,11 @@ function yearly(p) {
   // 收入与开销（都按今天的购买力）
   if (p.job && p.stage === '工作') {
     const yrs = a - p.jobStart;
-    p.income = Math.round(p.baseInc * wageIdx(y) * Math.pow(p.job.manual || p.job.acc ? 1.005 : 1.025, Math.min(yrs, 20)) * (a > 50 ? .96 : 1));
+    p.income = Math.round(p.baseInc * W(p, y) * Math.pow(p.job.manual || p.job.acc ? 1.005 : 1.025, Math.min(yrs, 20)) * (a > 50 ? .96 : 1));
     if (p.job.var) p.income = Math.round(p.income * Math.exp(gauss() * .35));
   } else if (p.stage === '退休') {
-    if (!p.pension && y >= 2009) { p.pension = RESIDENT_PENSION; log('新农保开始了，农村老人每月也能领一点养老金，起初几十块，后来涨到两百多。', 'era'); }
-    p.income = p.pension * 12 * (p.pensionType === '职工' ? Math.pow(wageIdx(y) / wageIdx(p.retY), .7) : 1);
+    if (!p.pension && y >= 2009 && !p.region && p.pensionType !== '海外') { p.pension = RESIDENT_PENSION; log('新农保开始了，农村老人每月也能领一点养老金，起初几十块，后来涨到两百多。', 'era'); }
+    p.income = p.pension * 12 * (p.pensionType === '职工' ? Math.pow(W(p, y) / W(p, p.retY), .7) : 1);
   } else p.income = 0;
   p.lifeIncome += p.income;
   let save = p.income * (p.stage === '退休' ? .25 : .3);
@@ -729,7 +795,7 @@ function deathCheck(p) {
   const a = p.age, y = p.year;
   // 时代带来的额外死亡：三年饥荒、2022年底的新冠
   let extra = 0;
-  if (y >= 1959 && y <= 1961) extra = (isRural(p) ? .012 : .003) * (FAMINE[p.prov] || 1) * (a < 5 || a > 60 ? 2 : 1);
+  if (!p.region && y >= 1959 && y <= 1961) extra = (isRural(p) ? .012 : .003) * (FAMINE[p.prov] || 1) * (a < 5 || a > 60 ? 2 : 1);
   if ((y === 2022 || y === 2023) && a > 75) extra = .012;
   if (extra && R() < extra) { die(p, y < 1970 ? '饥饿引起的浮肿病' : '新冠肺炎'); return true; }
   // 和同龄人的平均健康比，比平均差就更容易出事
@@ -751,6 +817,7 @@ const isRural = p => p.hukou.rural && !p.hukou.moved;
 
 /* ===================== 历史 ===================== */
 function history(p) {
+  if (p.region) return regionHistory(p);
   const y = p.year, a = p.age, rural = isRural(p);
   const H = t => log(t, 'era');
   const working = p.stage === '工作' && p.job;
@@ -898,24 +965,36 @@ function askXiagang(p) {
 /* ===================== 人生节点 ===================== */
 function milestones(p) {
   const a = p.age;
+  if (['服刑', '被困'].includes(p.stage)) return;
+  if (p.pubHouse && a === p.pubHouse) { p.pubHouse = null; p.house = '公屋'; log('终于等到了公屋，一家人搬了进去。', 'good'); }
+  if (p.adultDeg && a === p.adultDeg.until) { p.degree = p.adultDeg.deg; p.adultDeg = null; p.edu += 3; p.baseInc *= 1.06; log(`拿到了${p.degree}的毕业证。`, 'good'); p.bio.push(`后来读了${p.degree}`); }
+  if (p.partTimeMaster && a === p.partTimeMaster) { p.partTimeMaster = null; if (p.stage === '工作') { p.degree = '硕士（非全日制）'; p.baseInc *= 1.05; log('读完了非全日制硕士，拿到了学历和学位证。', 'good'); p.bio.push('读了非全日制硕士'); } }
+  if (p.sanzhi && a === p.sanzhi) return sanzhiEnd(p);
+  if (p.stage === '备考' && a >= p.prepUntil) return prepDone(p);
+  if (p.stage === '留学' && a >= p.gradAge) return stAbroadGrad(p);
+  if (p.region) { if (regionLife(p)) return; } else {
   if (a === 3) return stKinder(p);
   if (a === 6) return stPrimary(p);
   if (a === 12) return stMiddle(p);
   if (p.stage === '放牛' && a === 14) { setJob(p, '务农', p.prov, '农村'); log(p.year < 1982 ? '开始在生产队挣工分，一天七八个工分。' : '开始下地干活。'); return; }
   if (a === 15 && p.stage === '初中') return stZhongkao(p);
+  if (a >= 18 && p.stage === '高中' && !p.askedUg && p.year >= 2005 && p.fam > 1.5e6) { p.askedUg = true; return ask('高考还是出国', '家里条件好，不少同学准备出国读本科。', [{ l: '参加高考', n: '', w: 3, f: () => stGaokao(p) }, { l: '出国读本科', n: '', w: 1, f: () => askAbroad(p, true) }]); }
   if (a >= 18 && p.stage === '高中') return stGaokao(p); // 错过18岁那年（比如那年在考恢复高考）也能接着考
   if (p.stage === '复读' && a === p.retakeAge) return stGaokao(p, true);
   if (a >= 18 && p.stage === '职高') return stVocGrad(p);
   if (p.stage === '大学' && a === p.gradAge) return stGraduate(p);
   if (p.stage === '研究生' && a === p.gradAge) return stGraduate(p, true);
+  if (p.stage === '博士' && a === p.gradAge) return stPhD(p);
   if (p.stage === '当兵' && a === p.gradAge) return stVeteran(p);
   if (p.stage === '打工' && p.age >= p.jobAt) return stWorkNoDegree(p);
   if (p.stage === '工作') {
-    if (p.govTry && a <= 35 && R() < govChance(p)) { setJob(p, p.edu > 62 ? '公务员' : '事业编', p.workProv, p.workLoc); p.govTry = false; log('考了这么多年，终于上岸了。', 'big'); p.happy += 12; p.bio.push(`${a}岁考上了${p.job.name}`); return; }
+    if (p.govTry && a <= 35) { const key = typeof p.govTry === 'string' ? p.govTry : '国考省考'; if (R() < examChance(p, key, false)) { setJob(p, EXAMS[key].name, p.workProv, p.workLoc, p.workCity); p.govTry = false; log(`边上班边考，终于以社会考生的身份上岸了（${key === '国考省考' ? '公务员' : key}）。`, 'big'); p.happy += 12; p.bio.push(`${a}岁考上了${key === '国考省考' ? '公务员' : key}`); return; } }
     if (p.govTry && a === 36) { p.govTry = false; log('过了35岁，公务员考试报不了名了。', 'quiet'); }
-    if (p.job.risk && p.year >= 2015 && a === 36 && R() < p.job.risk) return stLayoff(p);
-    if (p.job.risk && p.year >= 2015 && a > 36 && a < 50 && R() < p.job.risk / 12) return stLayoff(p);
+    if (p.job.risk && p.workLoc !== '海外' && p.year >= 2015 && a === 36 && R() < p.job.risk) return stLayoff(p);
+    if (p.job.risk && p.workLoc !== '海外' && p.year >= 2015 && a > 36 && a < 50 && R() < p.job.risk / 12) return stLayoff(p);
     if (p.kidsAges.some(x => x === 6) && p.workLoc !== '农村' && !p.schoolNoted && p.year >= 2010) { p.schoolNoted = true; log(`孩子到了上小学的年纪。${p.hukou.local || p.hukou.moved ? '' : '户口不在本地，入学要凑齐居住证、社保、租房合同，跑了好几趟街道办。'}`); }
+    if (!p.adultEdu && p.year >= 1986 && a >= 23 && a <= 40 && /^(初中|高中|职高|技校|中专|大专)$/.test(p.degree) && R() < .05) return stAdultEdu(p);
+  }
   }
   const early = p.by <= 1970;
   if (!p.married && !p.noMarry && a >= 20 && a <= 45 && (p.stage === '工作' || a >= (early ? 22 : 26))) {
@@ -932,7 +1011,7 @@ function milestones(p) {
     if (p.kids === 1) { p.firstGirl = girl; p.bio.push(`${a}岁有了第一个孩子`); if (girl && p.yitaiban) { p.wantKids = 2; log('头胎是女儿，按政策过几年可以再生一胎。', 'quiet'); } }
     overQuota(p);
   }
-  if (p.married && !p.widowed && R() < (.007 + (p.happy < 35 ? .012 : 0)) * (p.year < 2000 ? .3 : 1)) { p.married = false; p.divorced = true; log(p.year >= 2021 ? '婚姻走到了头，两个人去民政局办了离婚。先是30天的冷静期，然后各自签了字。' : '婚姻走到了头，两个人去民政局办了离婚。', 'bad'); p.happy -= 14; p.bio.push(`${a}岁离婚`); }
+  if (p.married && !p.widowed && R() < (.007 + (p.happy < 35 ? .012 : 0)) * (p.year < 2000 ? .3 : 1)) { p.married = false; p.divorced = true; log(p.region === '台湾' ? '婚姻走到了头，两个人去户政事务所办了离婚登记。' : p.region ? '婚姻走到了头，两个人上法院办了离婚。' : p.year >= 2021 ? '婚姻走到了头，两个人去民政局办了离婚。先是30天的冷静期，然后各自签了字。' : '婚姻走到了头，两个人去民政局办了离婚。', 'bad'); p.happy -= 14; p.bio.push(`${a}岁离婚`); }
   if (!p.parentsDone && a >= 45 && a <= 58 && R() < .14) return stParents(p);
   if (p.married && !p.widowed && a >= 62 && R() < (a - 55) * .0025) { p.widowed = true; log('老伴走了。家里突然变得很安静。', 'bad'); p.happy -= 18; p.bio.push(`${a}岁时老伴离世`); }
   if (p.stage === '工作' && a >= retireAge(p)) return retire(p);
@@ -1115,12 +1194,33 @@ const JOBS = {
   个体户: { inc:1.1, el:.8, h:-.3, risk:0, pen:'居民', var:1, desc:'开了一家小店' },
   务农: { inc:.36, el:0, h:-.2, risk:0, pen:'居民', manual:1, desc:'在家种地' },
   军人: { inc:1.1, el:.3, h:.1, risk:0, pen:'职工', desc:'在部队服役' },
+  军队文职: { inc:1.05, el:.8, h:0, risk:0, pen:'职工', desc:'在部队当文职' },
+  三支一扶: { inc:.45, el:.4, h:0, risk:0, pen:'职工', desc:'在乡镇基层服务' },
+  大厂运营: { inc:1.6, el:1, h:-.6, risk:.35, pen:'职工', desc:'在互联网大厂做运营，天天盯数据' },
+  外企职员: { inc:1.5, el:.9, h:-.1, risk:.2, pen:'职工', desc:'在一家外企上班，基本到点下班' },
+  高校教师: { inc:1.2, el:.8, h:-.4, risk:.1, pen:'职工', desc:'在大学当青年教师，“非升即走”' },
+  网约车司机: { inc:.85, el:.6, h:-.6, risk:0, pen:'居民', acc:1, desc:'开网约车' },
+  主播: { inc:.9, el:.5, h:-.3, risk:0, pen:'居民', var:1, desc:'全职做短视频和直播' },
+  香港公务员: { inc:1.7, el:0, h:0, risk:0, pen:'公务员', desc:'在政府部门做公务员' },
+  澳门公务员: { inc:1.7, el:0, h:0, risk:0, pen:'公务员', desc:'在政府部门做公务员' },
+  台湾公务员: { inc:1.15, el:0, h:0, risk:0, pen:'公务员', desc:'考上了公务员' },
+  台湾教师: { inc:1.2, el:0, h:-.1, risk:0, pen:'公务员', desc:'在中学当老师' },
+  会计师: { inc:1.3, el:0, h:-.6, risk:.1, pen:'职工', desc:'在会计师楼做审计' },
+  护士社工: { inc:1.25, el:0, h:-.3, risk:0, pen:'职工', desc:'在医院做护士' },
+  文员: { inc:.75, el:0, h:-.1, risk:.1, pen:'职工', desc:'在写字楼做文员' },
+  茶餐厅: { inc:.65, el:0, h:-.4, risk:0, pen:'职工', manual:1, desc:'在茶餐厅做事' },
+  荷官: { inc:1.0, el:0, h:-.4, risk:.05, pen:'职工', desc:'在赌场做荷官，三班倒' },
+  酒店员工: { inc:.75, el:0, h:-.2, risk:.05, pen:'职工', desc:'在酒店上班' },
+  科技业工程师: { inc:1.9, el:0, h:-.7, risk:.1, pen:'职工', desc:'在科学园区做工程师，常常加班到半夜' },
+  服务业: { inc:.7, el:0, h:-.3, risk:.05, pen:'职工', desc:'在服务业上班' },
+  作业员: { inc:.7, el:0, h:-.5, risk:.1, pen:'职工', manual:1, desc:'在工厂当作业员' },
 };
 function setJob(p, name, prov, loc, city) {
   const j = JOBS[name];
   p.job = { name, ...j };
   p.workProv = prov; p.workLoc = loc; p.workCity = city || null;
   p.stage = '工作'; p.jobStart = p.age;
+  if (SAR[prov]) { p.incF = Math.exp(gauss() * .22); p.baseInc = SAR[prov].wage * j.inc * (1 + (p.edu - 50) / 220) * p.incF; p.income = Math.round(p.baseInc * SAR[prov].wi(p.year)); p.pensionType = j.pen; return; }
   const provF = Math.pow(PV[prov].inc / NAT_INC, .6);
   const cf = loc === '一线城市' ? 1.9 * (prov === '广东' ? 1.15 : 1.35) : CITYF[loc] * provF;
   const eduF = 1 + (p.edu - 50) / 220;
@@ -1143,7 +1243,7 @@ function cityOpts(p, then) {
 
 function stGraduate(p, master) {
   const y = p.year;
-  p.degree = p.tier === '中专' ? '中专' : p.tier === '专科' ? '大专' : master ? '硕士' : p.major === '医学' && y >= 2000 ? '硕士（临床）' : '本科';
+  p.degree = p.tier === '中专' ? '中专' : p.tier === '专科' ? '大专' : master ? (p.masterKind ? `硕士（${p.masterKind}）` : '硕士') : p.major === '医学' && y >= 2000 ? '硕士（临床）' : '本科';
   // 1997年以前：国家包分配
   if (y < 1997) {
     p.hukou.moved = true; p.hukou.prov = p.prov;
@@ -1162,27 +1262,18 @@ function stGraduate(p, master) {
   const unemp = p.tier === '专科' ? .2 : p.tier === '本科' ? .15 : .08;
   log(`${master ? '研究生' : '大学'}毕业了。${R() < unemp ? '投了两百多份简历，前半年都没找到工作。' : ''}`, 'big');
   if (p.major === '医学' && p.tier !== '专科') { setJob(p, '医生', p.hukou.local ? p.prov : p.hukou.prov, '省会'); log(`在${PV[p.workProv].cap}的一家三甲医院规培后留了下来。`); p.bio.push('当了医生'); return; }
-  const top = p.tier === '985' || p.tier === '211';
+  const top = isTop(p);
   const opts = [];
-  if (!master && p.tier !== '专科' && p.tier !== '中专') opts.push({ l: '考研', n: '再读三年', w: 2, f: () => { if (R() < .35 + (p.edu - 50) / 150) { p.stage = '研究生'; p.gradAge = p.age + 3; p.edu += 4; log('考研上岸了。'); p.bio.push('读了研究生'); } else { log('考研差了几分，先找了工作。'); pickCareer(p, top); } } });
-  opts.push({ l: '考公 / 考编', n: `平均几十个人抢一个岗位，${p.edu > 65 ? '你成绩还不错' : '要准备很久'}`, w: 3, f: () => { if (R() < govChance(p) * 2.5) { cityThen(p, (pr, loc) => { setJob(p, p.major === '师范' ? '教师' : pick(['公务员','事业编']), pr, loc === '一线城市' ? loc : pr === p.prov ? loc : '县城'); log('一次就上岸了，家里放了鞭炮。', 'good'); p.happy += 10; p.bio.push(`毕业考上了${p.job.name}`); }); } else { log('没考上。先找了份工作，一边上班一边接着考。'); p.govTry = true; pickCareer(p, top); } } });
-  opts.push({ l: '进公司', n: top ? '大厂、外企、国企' : '私企为主', w: 4, f: () => pickCareer(p, top) });
-  if (p.fam > 4e5) opts.push({ l: '出国读书', n: '家里出钱，一年四五十万', w: 1, f: () => { p.fam -= 5e5; p.edu += 6; p.abroad = true; p.degree = '海外硕士'; log(`去${pick(['英国','澳大利亚','美国','新加坡','香港'])}读了一年硕士，回国找工作。`); p.bio.push('出国读了硕士'); pickCareer(p, true); } });
+  if (master && p.masterKind === '学硕' && p.edu > 70) opts.push({ l: '读博', n: '四五年，毕业去高校或研究所', w: 1, f: () => { p.stage = '博士'; p.gradAge = p.age + 4 + (R() < .4 ? 1 : 0); p.degree = '博士在读'; p.edu += 3; log('接着读了博士。'); p.bio.push('读了博士'); } });
+  if (!master && !['专科', '中专'].includes(p.tier)) opts.push({ l: '考研 / 保研', n: '学硕、专硕、非全日制，成绩好可以争取保研', w: 2, f: () => askGrad(p, top) });
+  if (p.tier === '专科') opts.push({ l: '专升本', n: '统招专升本，考上再读两年本科', w: 3, f: () => { if (R() < .4 + (p.edu - 50) / 120) { p.tier = '本科'; p.stage = '大学'; p.gradAge = p.age + 2; p.degree = '本科在读'; log('专升本考上了，又读了两年本科。', 'good'); p.bio.push('专升本读了本科'); } else { log('专升本没考上。'); pickCareer(p, false); } } });
+  opts.push({ l: '考公 / 考编', n: '公务员、选调生、事业编、教师编、军队文职、三支一扶', w: 3, f: () => askExam(p, true) });
+  opts.push({ l: '找工作', n: top ? '大厂、外企、央国企、私企' : '私企为主', w: 4, f: () => pickCareer(p, top) });
+  if (!master && p.fam > 3e5) opts.push({ l: '出国读研', n: '家里出钱，挑个国家', w: 1, f: () => askAbroad(p) });
   const grads = Math.round(interp([[1997,83],[2003,212],[2008,559],[2012,680],[2020,874],[2026,1270]], y));
   ask('毕业去向', `${p.tier === '专科' ? '大专学历在招聘里吃亏。' : ''}这一年全国高校毕业生约 ${grads} 万。`, opts);
 }
 function cityThen(p, then) { ask('去哪座城市', '', cityOpts(p, then)); }
-function pickCareer(p, top) {
-  const m = p.major, y = p.year;
-  const name = m === '计算机' ? (y >= 2005 && (top || R() < .5) ? '程序员' : '私企白领') : m === '金融' ? (top ? '金融从业' : '私企白领') : m === '师范' ? '教师' : m === '土木' ? (R() < .5 ? '工程师' : '私企白领') : top && R() < .4 ? '国企职员' : '私企白领';
-  cityThen(p, (pr, loc, city) => {
-    setJob(p, name, pr, loc, city);
-    log(`${JOBS[name].desc}。第一年税前大约 ${money(p.income)}。`);
-    if (loc === '一线城市') log('和别人合租一个隔断间，每天通勤一个半小时。', 'quiet');
-    p.bio.push(`在${workPlace(p)}${JOBS[name].desc.replace(/，.*/, '')}`);
-  });
-}
-
 function stWorkNoDegree(p) {
   if (p.degree.includes('在读')) p.degree = p.degree.replace('在读', '');
   const y = p.year, home = p.hukou.local ? p.prov : p.hukou.prov, rural = isRural(p);
@@ -1196,6 +1287,8 @@ function stWorkNoDegree(p) {
   if (y < 1998 && !rural) opts.push({ l: '进国营厂', n: '铁饭碗，招工要托关系', w: 4, f: () => { setJob(p, '工厂工人', p.prov, homeLoc(p)); p.job.soe = true; log('进了一家国营厂当学徒工，三年转正。'); p.bio.push('在国营厂当工人'); } });
   opts.push({ l: '跟师傅学手艺', n: '电工、厨师、装修，三年出师', w: 3, f: () => { setJob(p, '技术工', home, '县城'); const t = pick([['电工','当了电工'],['厨师','当了厨师'],['装修','做了装修师傅'],['汽修','当了汽修工'],['焊工','当了焊工']]); p.job.desc = `学${t[0]}`; log(`跟着师傅${p.job.desc}，三年后能自己接活了。`); p.bio.push(t[1]); } });
   if (y >= 2015) opts.push({ l: '送外卖', n: '来钱快，没有社保', w: 2, f: () => { setJob(p, '外卖骑手', home, '省会'); log(`在${PV[home].cap}送外卖，一单五六块钱。`); p.bio.push('送过很多年外卖'); } });
+  if (y >= 2016) opts.push({ l: '开网约车', n: '要先买车或者租车', w: 1, f: () => { setJob(p, '网约车司机', home, '省会'); log(`在${PV[home].cap}开网约车。`); p.bio.push('开过网约车'); } });
+  if (y >= 2018 && p.age <= 28) opts.push({ l: '做主播 / 短视频', n: '大多数人赚不到钱，少数人火了', w: .7, f: () => { setJob(p, '主播', home, '省会'); if (R() < .05) { p.baseInc *= 8; log('拍的视频突然火了，粉丝涨到几百万，接广告接到手软。', 'good big'); p.bio.push('做短视频成了网红'); } else log('开始拍短视频、做直播，收入时有时无。'); } });
   else opts.push({ l: '进城当建筑工', n: '跟着包工头，年底才结钱', w: rural ? 2 : 1, f: () => { setJob(p, '建筑工', home, '省会'); log(`跟着同村的包工头去${PV[home].cap}的工地干活。`); p.bio.push('在工地上干了很多年'); } });
   if (y >= 1980 && y < 2015) opts.push({ l: '摆摊做小买卖', n: '', w: 1, f: () => { setJob(p, '个体户', home, rural ? '县城' : homeLoc(p)); p.job.desc = '摆摊做小买卖'; log('在街边支了个摊子，卖起了小吃。'); p.bio.push('当了个体户'); } });
   if (p.male && p.age <= 22 && p.health > 65) opts.push({ l: '去当兵', n: y < 1992 ? '当兵吃粮，还能“跳农门”' : '两年义务兵，退伍有安置', w: 1, f: () => { p.stage = '当兵'; p.gradAge = p.age + (y < 1999 ? 3 : 2); p.job = null; p.health += 4; log('报名参军，体检通过，去了部队。', 'big'); p.bio.push('当过兵'); } });
@@ -1237,11 +1330,13 @@ function stMarryPressure(p) {
   ]);
 }
 function housePrice(p) {
+  if (p.workLoc === '海外') return 4e6 * hpIdx(p.year);
   const pv = PV[p.workProv || p.prov], loc = p.workLoc || p.locale;
   const per = loc === '一线城市' ? ({ 北京:60000, 上海:62000, 广东:p.workCity === '广州' ? 32000 : 55000 }[p.workProv] || 50000) : loc === '省会' ? pv.hp : loc === '地级市' ? pv.hp * .5 : Math.max(4500, pv.hp * .3);
   return (loc === '农村' ? 3e5 : per * 90) * hpIdx(p.year);
 }
 function stMarry(p) {
+  if (p.region) return regionMarry(p);
   const y = p.year;
   p.married = true; p.marryAge = p.age;
   const how = p.blind ? (y < 1990 ? '媒人介绍' : '相亲认识') : pick(y < 1990 ? ['同一个车间', '同村', '亲戚介绍认识', '一起下乡时认识'] : ['同事介绍认识', '大学同学', '在网上认识', '朋友聚会上认识', '老乡']);
@@ -1279,6 +1374,7 @@ function buyHouse(p, price, txt) {
 }
 const policyUrban = p => !isRural(p) || (p.job && (p.job.soe || UNIT_JOBS.includes(p.job.name)));
 function stKids(p) {
+  if (p.region) return regionKids(p);
   p.askedKids = true;
   const y = p.year, per = KIDCOST[p.workLoc || p.locale] * wageIdx(y);
   let desc = `在这里把一个孩子养到 18 岁，大约要花 ${money(per * 18)}。`, opts;
@@ -1314,7 +1410,7 @@ function stKids(p) {
   }
   ask('要孩子吗', desc, opts);
 }
-function policyLimit(p) { const y = p.year; return y < 1980 || y >= 2021 ? 99 : y >= 2016 ? 2 : policyUrban(p) ? 1 : (p.firstGirl ? 2 : 1); }
+function policyLimit(p) { const y = p.year; return p.region || p.workLoc === '海外' || y < 1980 || y >= 2021 ? 99 : y >= 2016 ? 2 : policyUrban(p) ? 1 : (p.firstGirl ? 2 : 1); }
 function overQuota(p) {
   const y = p.year;
   if (p.kids <= policyLimit(p)) return;
@@ -1338,13 +1434,14 @@ function stParents(p) {
 
 // 2025年起渐进式延迟退休：男 60→63，女工人 50→55，女干部 55→58
 function retireAge(p) {
-  if (p.pensionType === '居民') return 65;
+  if (p.pensionType === '居民' || p.region || p.pensionType === '海外') return 65;
   const b = p.by;
   if (p.male) return b < 1965 ? 60 : Math.min(63, 60 + (b - 1965) * 3 / 11);
   if (p.job && p.job.manual) return b < 1975 ? 50 : Math.min(55, 50 + (b - 1975) * 5 / 9);
   return b < 1970 ? 55 : Math.min(58, 55 + (b - 1970) * 3 / 11);
 }
 function retire(p) {
+  if (p.region || p.pensionType === '海外') return regionRetire(p);
   if (p.job.name === '务农' && p.age < 72) return;
   if (p.pensionType === '职工') p.pension = Math.max(1500, Math.round(p.income / 12 * .42));
   else p.pension = p.year >= 2009 ? RESIDENT_PENSION : 0;
@@ -1390,12 +1487,13 @@ const FLAVOR = [
     [9999, ['每天傍晚去广场跳舞。', '在公园下象棋。', '学会了用手机刷短视频。', '腿脚不好，很少出门了。', '去了一趟北京，看了升旗。', p.money > 3e5 ? '跟着老年团去云南旅游。' : '舍不得花钱，存着给孩子。']]])],
 ];
 function flavor(p) {
-  if (p.age === 16 && p.male && R() < (p.by <= 1970 ? .6 : .45)) { p.smoke = true; log('跟着大人学会了抽烟。中国一半的成年男性都抽烟。', 'quiet'); return; }
+  if (['服刑', '被困'].includes(p.stage)) return;
+  if (p.age === 16 && p.male && R() < (p.region ? .25 : p.by <= 1970 ? .6 : .45)) { p.smoke = true; log(`跟着大人学会了抽烟。${p.region ? '' : '中国一半的成年男性都抽烟。'}`, 'quiet'); return; }
   if (p.age === 25 && !p.male && R() < .03) { p.smoke = true; log('压力大的时候开始抽烟。', 'quiet'); return; }
   if (p.smoke && p.age > 40 && R() < .05) { p.smoke = false; log('医生说再抽下去肺就不行了，戒了烟。', 'good'); return; }
   if (p.age > 50 && R() < .025) { log(pick(['查出了糖尿病。', p.year >= 2000 ? '做了心脏支架。' : '心口疼，住了一个月医院。', '查出了早期肿瘤，做了手术。']), 'bad'); p.health -= 8; p.money -= 6e4 * wageIdx(p.year); return; }
   if (R() > .55) return;
-  const ok = FLAVOR.filter(([lo, hi, c]) => p.age >= lo && p.age <= hi && c(p));
+  const ok = (p.region ? REGION_FLAVOR[p.region] : FLAVOR).filter(([lo, hi, c]) => p.age >= lo && p.age <= hi && c(p));
   if (!ok.length) return;
   const t = pick(ok)[3](p);
   p.seen = p.seen || new Set();
@@ -1446,4 +1544,571 @@ function die(p, forced) {
   past.unshift({ name: p.name, line: `${shortPlace(p)} · ${p.male ? '男' : '女'} · ${life} · ${p.jobName || (p.job && p.job.name) || deg}`, when: `${p.by}—${p.year}` });
   store.set('cnlife.past', past.slice(0, 20));
 }
+
+/* ===================== 就业：考公考编、大厂外企、灵活就业 ===================== */
+const isTop = p => ['985','211'].includes(p.tier);
+function goCity(p, name) {
+  cityThen(p, (pr, loc, city) => {
+    setJob(p, name, pr, loc, city);
+    if (p.returnee && ABROAD[p.abroad]) { p.baseInc *= ABROAD[p.abroad].back; p.income = Math.round(p.income * ABROAD[p.abroad].back); }
+    log(`${JOBS[name].desc}。第一年税前大约 ${money(p.income)}。`);
+    if (loc === '一线城市') log('和别人合租一个隔断间，每天通勤一个半小时。', 'quiet');
+    p.bio.push(`在${workPlace(p)}${JOBS[name].desc.replace(/，.*/, '')}`);
+  });
+}
+function pickCareer(p, top) {
+  const m = p.major, y = p.year, cs = m === '计算机';
+  if (y < 2000) return goCity(p, cs ? '私企白领' : m === '金融' ? (top ? '金融从业' : '私企白领') : m === '师范' ? '教师' : m === '土木' ? (R() < .5 ? '工程师' : '私企白领') : top && R() < .4 ? '国企职员' : '私企白领');
+  const opts = [];
+  if (y >= 2005) opts.push({ l: cs ? '互联网大厂写代码' : '互联网大厂做运营 / 产品', n: '钱多，996，过了35岁很难待下去', ok: top || p.edu > 68 || (cs && p.edu > 58), w: cs ? 5 : 2, f: () => goCity(p, cs ? '程序员' : '大厂运营') });
+  opts.push({ l: '外企', n: y >= 2020 ? '基本到点下班，但这几年不少外企在裁员、撤离' : '工资体面，基本到点下班', ok: p.edu > 55 || !!p.abroad, w: 2, f: () => goCity(p, '外企职员') });
+  opts.push({ l: '央国企校招', n: '稳定，看学校出身', ok: top || p.edu > 70, w: 3, f: () => goCity(p, '国企职员') });
+  if (m === '金融') opts.push({ l: '券商 / 银行', n: '看家里有没有资源', ok: top || p.fam > 1e6, w: 3, f: () => goCity(p, '金融从业') });
+  if (m === '土木') opts.push({ l: '设计院 / 工地', n: y >= 2021 ? '房地产下行，整个行业都在收缩' : '基建正热，常年驻工地', w: 3, f: () => goCity(p, '工程师') });
+  if (m === '师范') opts.push({ l: '私立学校 / 培训机构', n: y >= 2021 ? '“双减”之后培训机构大量关门' : '', w: y >= 2021 ? 1 : 3, f: () => goCity(p, '教师') });
+  opts.push({ l: '私企 / 中小公司', n: '门槛低，看老板', w: 4, f: () => goCity(p, '私企白领') });
+  if (y >= 2016) opts.push({ l: '先灵活就业', n: '送外卖、开网约车、做主播过渡', w: 1, f: () => { setJob(p, pick(['外卖骑手', '网约车司机', '主播']), p.hukou.local ? p.prov : p.hukou.prov, '省会'); log(`没找到合适的工作，先${p.job.desc}。`); p.bio.push(`毕业后${p.job.desc}`); } });
+  ask('找工作', y >= 2022 ? '这几年就业难，大厂和外企都在收缩，投出去的简历很多石沉大海。' : '', opts);
+}
+function examChance(p, key, fresh) {
+  const e = EXAMS[key];
+  if (p.record) return 0;                       // 政审过不了
+  if (!fresh && e.fresh) return 0;
+  let c = 1.6 / e.ratio * Math.exp((p.edu - 55) / 18);
+  if (isTop(p)) c *= 1.4;
+  if (key === '教师编' && p.major === '师范') c *= 1.6;
+  c *= fresh ? 1.3 : .6;                        // 很多岗位只招应届，社会考生能报的少
+  return clamp(c, 0, .6);
+}
+function askExam(p, fresh) {
+  const ben = /本科|硕士|博士/.test(p.degree);
+  const opts = Object.entries(EXAMS).map(([k, e]) => {
+    const why = e.need === '本科' && !ben ? '要本科学历' : e.top && !isTop(p) ? '只招名校生' : e.fresh && !fresh ? '只招应届生' : p.record ? '有案底，政审过不了' : p.age > 35 ? '超过35岁' : '';
+    return { l: k === '国考省考' ? '国考 / 省考公务员' : k, n: why || `${e.note}（约${e.ratio}:1）`, ok: !why, w: { 国考省考:4, 选调生:3, 事业编:4, 教师编: p.major === '师范' ? 6 : 1, 军队文职:1.5, 三支一扶:1.5 }[k], f: () => takeExam(p, k, fresh, 1) };
+  });
+  ask(fresh ? '考公考编' : '社招考编', fresh ? '应届生身份很值钱，很多岗位只招应届，毕业两年后就没了。' : '社会考生能报的岗位少一些，不少还要求两年基层工作经历。', opts);
+}
+function takeExam(p, key, fresh, tries) {
+  if (R() < examChance(p, key, fresh) * (1 + (tries - 1) * .2)) return passExam(p, key, fresh);
+  ask('没上岸', `${key === '国考省考' ? '笔试进了面试，' : ''}最后差了一点。`, [
+    { l: '全职再考一年', n: '在家备考，没有收入', ok: tries < 3 && p.age < 35, w: 2, f: () => { p.stage = '备考'; p.job = null; p.prepFor = ['编', key, fresh && tries < 2, tries + 1]; p.prepUntil = p.age + 1; p.happy -= 8; log(`在家全职备考${key === '国考省考' ? '公务员' : key}，每天去图书馆占座。`); } },
+    { l: '先工作，边干边考', n: '以后只能按社会考生报', w: 3, f: () => { p.govTry = key; pickCareer(p, isTop(p)); } },
+    { l: '不考了', n: '', w: 2, f: () => pickCareer(p, isTop(p)) },
+  ]);
+}
+function passExam(p, key, fresh) {
+  const e = EXAMS[key], home = p.hukou.local ? p.prov : p.hukou.prov;
+  const loc = key === '三支一扶' ? '农村' : key === '选调生' ? '县城' : pick(['省会', '地级市', '县城']);
+  setJob(p, e.name, home, loc, loc === '地级市' ? pick(PV[home].cities) : null);
+  if (key === '三支一扶') { p.job.desc = '在乡镇' + pick(['支教', '支农', '支医', '做乡村振兴帮扶']); p.sanzhi = p.age + 2; }
+  if (key === '选调生') p.job.desc = '作为选调生下到乡镇挂职锻炼';
+  log(`${fresh ? '' : '以社会考生身份'}上岸了！${p.job.desc}，${workPlace(p)}。`, 'good big');
+  p.happy += 12; p.bio.push(`考上了${key === '国考省考' ? '公务员' : key}`);
+}
+function sanzhiEnd(p) {
+  p.sanzhi = null;
+  log('两年服务期满了。', 'big');
+  ask('三支一扶期满', '期满考核合格，可以报专项招录的事业编，还有加分。', [
+    { l: '考专项事业编', n: '竞争比外面小很多', w: 4, f: () => { if (R() < .5 + (p.edu - 55) / 100) { setJob(p, '事业编', p.workProv, '县城'); log('考上了县里的事业编，留在了基层。', 'good'); p.bio.push('三支一扶期满后考上事业编'); } else { log('没考上。'); p.govTry = '事业编'; pickCareer(p, false); } } },
+    { l: '去企业', n: '', w: 1, f: () => pickCareer(p, isTop(p)) },
+  ]);
+}
+
+/* ===================== 学历：考研、读博、专升本、成人学历、留学 ===================== */
+function askGrad(p, top) {
+  const y = p.year;
+  ask('读研', y >= 2020 ? '这几年考研报名三四百万人，大约四五个人里录取一个。' : '考研的人一年比一年多。', [
+    ...(top && p.edu > 72 ? [{ l: '争取保研', n: '成绩排在前面，不用考', w: 4, f: () => { if (R() < .6) enterGrad(p, '学硕', '保研了，读全日制学术硕士'); else { log('保研名额没排上。'); gradExam(p, '学硕'); } } }] : []),
+    { l: '考全日制学硕', n: '三年，偏研究，以后能读博', w: 2, f: () => gradExam(p, '学硕') },
+    { l: '考全日制专硕', n: '两年左右，偏就业，学费贵一些', w: 3, f: () => gradExam(p, '专硕') },
+    { l: '先工作，读非全日制', n: '周末上课，学费三五万，有的单位不认', w: 1, f: () => { p.partTimeMaster = p.age + 3; log('报了非全日制研究生，周末去上课。'); pickCareer(p, top); } },
+  ]);
+}
+function gradExam(p, kind, second) {
+  const pr = clamp(.22 + (p.edu - 55) / 80 + (isTop(p) ? .1 : 0) + (second ? .08 : 0), .05, .85);
+  if (R() < pr) return enterGrad(p, kind, `${second ? '二战' : '考研'}上岸，读${kind === '学硕' ? '全日制学术硕士' : '全日制专业硕士'}`);
+  if (second) { log('二战又没考上，只好去找工作。', 'bad'); p.happy -= 6; return pickCareer(p, isTop(p)); }
+  ask('考研没上岸', '差了几分。', [
+    { l: '二战', n: '在家全职再考一年', w: 2, f: () => { p.stage = '备考'; p.job = null; p.prepFor = ['研', kind]; p.prepUntil = p.age + 1; p.happy -= 8; log('租了间小屋，又在图书馆泡了一年。'); } },
+    { l: '先找工作', n: '', w: 3, f: () => pickCareer(p, isTop(p)) },
+  ]);
+}
+function enterGrad(p, kind, txt) {
+  p.stage = '研究生'; p.gradAge = p.age + (kind === '学硕' ? 3 : 2); p.edu += 4; p.masterKind = kind; p.job = null;
+  log(txt + '。', 'good'); p.bio.push(txt.replace(/^(考研|二战)上岸，/, ''));
+}
+function prepDone(p) {
+  const [kind, key, fresh, tries] = p.prepFor;
+  if (kind === '研') return gradExam(p, key, true);
+  takeExam(p, key, fresh, tries);
+}
+function stPhD(p) {
+  p.degree = '博士';
+  log('博士毕业了。', 'big');
+  ask('博士毕业', '', [
+    { l: '进高校当老师', n: '“非升即走”，六年评不上副教授就得走', w: 3, f: () => { setJob(p, '高校教师', p.prov, '省会'); log(`进了${PV[p.prov].cap}一所大学当讲师。`); p.bio.push('读完博士进了高校'); } },
+    { l: '去企业做研发', n: '', w: 2, f: () => { goCity(p, p.major === '计算机' ? '程序员' : '工程师'); p.incBoost = 1.3; } },
+  ]);
+}
+function stAdultEdu(p) {
+  p.adultEdu = true;
+  const y = p.year, k = wageIdx(y), low = /初中/.test(p.degree);
+  const target = /大专/.test(p.degree) ? '本科' : '大专';
+  ask('提升学历', '评职称、考编、升职都卡学历，身边不少同事在读成人学历。', [
+    { l: '成人高考（函授）', n: low ? '初中学历报不了' : '周末和假期上课，两年半，学费一两万', ok: !low, w: 3, f: () => { p.money -= 1.5e4 * k; p.adultDeg = { until: p.age + 3, deg: `成人${target}（函授）` }; log('考上了成人高考的函授班。'); } },
+    { l: '自学考试', n: '最便宜，每门都要自己考过，很多人坚持不下来', w: 1.5, f: () => { if (R() < .3 + (p.edu - 50) / 150) { p.adultDeg = { until: p.age + 4, deg: `自考${target}` }; log('报了自考，每年考几门。'); } else log('考了几门，工作一忙就放下了。'); } },
+    ...(y >= 1999 && y < 2025 ? [{ l: '网络教育 / 国家开放大学', n: '网上上课，最好毕业，认可度也最低', ok: !low, w: 2, f: () => { p.money -= 1e4 * k; p.adultDeg = { until: p.age + 3, deg: `网络教育${target}` }; log('报了网络教育，平时在手机上刷课。'); } }] : []),
+    { l: '算了', n: '', w: 5, f: () => {} },
+  ]);
+}
+function askAbroad(p, undergrad) {
+  const k = undergrad ? 2.2 : 1, money0 = p.fam + Math.max(0, p.money);
+  ask('去哪个国家', undergrad ? '读本科要四年，花费是读硕士的两倍多。' : '', Object.entries(ABROAD).filter(([c]) => c !== (p.region || '')).map(([c, a]) => ({
+    l: c, n: `${undergrad ? 4 : a.yrs}年，大约花${money(a.cost * k)}`, ok: money0 > a.cost * k * .6,
+    w: { 美国:2, 英国:3, 香港:3, 澳大利亚:2, 加拿大:1, 新加坡:1, 日本:1, 德国:.5, 马来西亚:1 }[c],
+    f: () => { p.fam -= a.cost * k; p.edu += 5; p.abroad = c; p.degree = undergrad ? `海外本科（${c}）` : `海外硕士（${c}）`; p.stage = '留学'; p.job = null; p.gradAge = p.age + (undergrad ? 4 : a.yrs); log(`去${c}读${undergrad ? '本科' : '硕士'}。`, 'big'); p.bio.push(`去${c}留学`); },
+  })));
+}
+function stAbroadGrad(p) {
+  const c = p.abroad, a = ABROAD[c];
+  log(`在${c}毕业了。`, 'big');
+  ask('留下还是回去', `${c}的工作签证不好拿。`, [
+    { l: `留在${c}`, n: '找工作、等身份', w: 2, f: () => { if (R() < a.stay + (p.edu - 60) / 200) setAbroadJob(p, c); else { log('工作签证没办下来，只好回去。'); returnHome(p); } } },
+    { l: '回去', n: '当“海归”', w: 3, f: () => returnHome(p) },
+  ]);
+}
+function setAbroadJob(p, c) {
+  const a = ABROAD[c];
+  p.job = { name: '海外工作', inc: 0, el: 0, h: -.2, risk: .1, pen: '海外', desc: `在${c}工作` };
+  p.stage = '工作'; p.jobStart = p.age; p.workProv = c; p.workLoc = '海外'; p.workCity = c;
+  p.baseInc = a.wage * Math.exp(gauss() * .25) * (1 + (p.edu - 50) / 220);
+  p.income = Math.round(p.baseInc * wageIdx(p.year)); p.pensionType = '海外';
+  log(`留在了${c}工作，几年后拿到了长期居留。`, 'good'); p.bio.push(`定居${c}`);
+}
+function returnHome(p) { p.returnee = true; p.region ? regionCareer(p) : pickCareer(p, true); }
+
+/* ===================== 另一面：被骗、犯事、坐牢、出狱 ===================== */
+function darkSide(p) {
+  const y = p.year, a = p.age, k = wageIdx(y);
+  if (p.stage === '服刑') return prisonYear(p);
+  if (p.stage === '被困') return trappedYear(p);
+  if (a < 16) return;
+  if (p.bribed && R() < .06) { log('被纪委带走调查，收过的钱一笔笔都被查了出来。', 'bad big'); p.money -= 4e5 * k; p.bribed = false; return imprison(p, 5 + Math.floor(R() * 6), '受贿罪'); }
+  // 被骗
+  if (y >= 2012 && a >= 18 && R() < (a >= 60 ? .004 : .002)) {
+    const loss = Math.max(5e3, Math.min(Math.max(p.money, 0) * .6 + 1e4 * k, (a >= 60 ? 8e4 : 15e4) * Math.exp(gauss() * .6) * k));
+    const how = a >= 60 ? pick(['被“专家讲座”忽悠买了一堆保健品', '投了一个“养老项目”，老板跑路了', '接到冒充孙子的电话，说出了车祸要钱'])
+      : pick(['接到冒充公检法的电话，说名下的卡涉嫌洗钱，要转到“安全账户”', '做“刷单返利”兼职，先赚了几十块，后来越投越多', '网上谈了个对象，被拉进一个投资平台，钱取不出来了，是“杀猪盘”', '冒充客服说要退款，一步步按指示转了钱']);
+    p.money -= loss; p.happy -= 10; log(`${how}，被骗了 ${money(loss)}。`, 'bad'); return;
+  }
+  if (!p.region && y >= 1998 && y <= 2015 && a >= 18 && a <= 30 && p.stage !== '大学' && p.edu < 55 && R() < .004) { p.money -= 3e4 * k; p.happy -= 12; log('被老同学骗去外地“做大生意”，进了传销窝点，交了钱、听了三个月课才逃出来。', 'bad'); p.bio.push('被骗进过传销'); return; }
+  if (!p.region && y === 2018 && p.money > 5e4 && R() < .06) { const l = p.money * .4; p.money -= l; p.happy -= 10; log(`投的 P2P 理财平台暴雷，${money(l)} 没了。`, 'bad'); return; }
+  // 犯事
+  const risk = (p.male ? 1 : .15) * (p.edu < 40 ? 2 : p.edu < 55 ? 1.3 : .7) * (!p.job || ['外卖骑手', '建筑工', '个体户', '工厂工人'].includes(p.job.name) ? 1.5 : 1) * (p.cls <= 2 ? 1.3 : 1) * (a <= 35 ? 1 : a <= 50 ? .5 : .2) * (p.record ? 2.5 : 1) * (p.reoffend ? 2 : 1);
+  if (!p.region && p.workLoc !== '海外' && y >= 2011 && p.stage === '工作' && p.income > 6e4 && p.male && R() < .007 * (a <= 55 ? 1 : .4)) return askDrunk(p);
+  if (y >= 2019 && a >= 18 && a <= 32 && (p.income < 6e4 || p.stage === '大学') && R() < .005) return askCard(p);
+  if (y >= 2018 && y <= 2023 && a >= 18 && a <= 35 && (!p.job || p.income < 5e4) && p.edu < 60 && R() < .004) return askSEA(p);
+  if (y >= 2015 && a >= 20 && a <= 45 && R() < .003 * (p.male ? 1 : .3)) return askGamble(p);
+  if (p.stage === '工作' && PUBLIC_JOBS.includes(p.job.name) && a >= 38 && a <= 58 && !p.bribeAsked && R() < .03) return askBribe(p);
+  if (R() < .0009 * risk) return fight(p);
+}
+function askDrunk(p) {
+  ask('饭局之后', '酒桌上推不掉，喝了好几杯。代驾叫了半天没人接单。', [
+    { l: '自己开回去', n: '就几公里路', w: 1, f: () => {
+      if (R() < .25) { log('路口碰上查酒驾，一吹超过 80，构成醉驾。', 'bad'); imprison(p, 0, '危险驾驶罪', `判了拘役${2 + Math.floor(R() * 4)}个月，驾照吊销五年不能考`); }
+      else log('一路提心吊胆开回了家，没出事。', 'quiet');
+    } },
+    { l: '等代驾 / 打车', n: '', w: 4, f: () => log('等了四十分钟，打车回了家。', 'quiet') },
+  ]);
+}
+function askCard(p) {
+  const acct = p.region === '台湾' ? '人头账户' : p.region ? '银行户口' : '银行卡和电话卡';
+  ask('有人找你借卡', `网上认识的人说做“跑分”，把${acct}借出去，一个月给一千五。`, [
+    { l: '借给他', n: '来钱快', w: 1, f: () => {
+      p.money += 4500 * wageIdx(p.year);
+      if (R() < .6) { log('三个月后，警察找上门：卡被电诈团伙用来转赃款。', 'bad'); const s = R() < .45; imprison(p, s ? 0 : 1, p.region ? '洗钱罪' : '帮助信息网络犯罪活动罪', s ? '判了十个月，缓刑一年' : ''); if (!p.region) log('名下的银行卡和电话卡都被冻结，五年内不能新办。', 'quiet'); }
+      else log('赚了几千块，后来卡被银行冻结了。', 'quiet');
+    } },
+    { l: '拒绝', n: '', w: 4, f: () => log('拒绝了，还把对方拉黑了。', 'quiet') },
+  ]);
+}
+function askSEA(p) {
+  const place = pick(['缅甸北部', '柬埔寨', '老挝', '菲律宾']);
+  ask('“高薪工作”', `老乡在微信上说，去${place}做“客服”，包吃包住，月薪两万。`, [
+    { l: '去', n: '在家也找不到活', w: 1, f: () => {
+      log('偷渡过去，一下车护照就被收走，关进了园区，被逼着每天在网上骗人。', 'bad big');
+      p.health -= 15; p.happy -= 30; p.job = null; p.stage = '被困'; p.trappedUntil = p.age + 1 + (R() < .5 ? 1 : 0);
+      p.bio.push(`被骗到${place}的电诈园区`);
+    } },
+    { l: '不去', n: '', w: 3, f: () => log('觉得不对劲，没去。后来新闻里说那边全是电诈园区。', 'quiet') },
+  ]);
+}
+function trappedYear(p) {
+  if (p.age < p.trappedUntil) { log(pick(['每天被逼着在网上骗人，完不成业绩就挨打。', '想办法偷偷给家里发了一条消息。', '园区换了老板，人被转卖了一次。']), 'bad'); p.health -= 6; return; }
+  log('园区被清查，跟着一批人被遣返回来。', 'big');
+  if (R() < .45) return imprison(p, 1 + Math.floor(R() * 3), '偷越国境罪、诈骗罪');
+  log('因为是被骗过去、被胁迫的，没有被追究。'); p.stage = '打工'; p.jobAt = p.age;
+}
+function askGamble(p) {
+  ask('网上赌球', '朋友拉你进了一个群，说跟着“老师”下注稳赚。', [
+    { l: '玩几把', n: '', w: 1, f: () => {
+      if (R() < .15) { p.money += 2e4 * wageIdx(p.year); log('运气好赢了点，及时收了手。'); return; }
+      const l = Math.max(5e4 * wageIdx(p.year), p.money * .7); p.money -= l; p.happy -= 18;
+      log(`越输越想翻本，前前后后输了 ${money(l)}，还借了网贷。`, 'bad'); p.bio.push('网赌输光了积蓄');
+      if (p.job && R() < .08) { log('为了还赌债挪用了公司的钱，被公司报了警。', 'bad'); imprison(p, 2 + Math.floor(R() * 3), '职务侵占罪'); }
+    } },
+    { l: '不玩', n: '', w: 4, f: () => log('没理，退了群。', 'quiet') },
+  ]);
+}
+function askBribe(p) {
+  p.bribeAsked = true;
+  ask('一个信封', '有人托你办件事，饭后塞过来一个厚厚的信封。', [
+    { l: '收下', n: '“大家都这样”', w: .5, f: () => { p.money += 2e5 * wageIdx(p.year); p.bribed = true; log('收下了。后来又收过几次。'); } },
+    { l: '退回去', n: '', w: 4, f: () => log('当场推了回去。', 'quiet') },
+  ]);
+}
+function fight(p) {
+  const what = pick(['喝多了跟人打架，把对方打成轻伤', '一时糊涂，偷了工地上的电缆去卖', '帮朋友捎了一包东西，后来才知道是毒品']);
+  log(what + '。', 'bad');
+  if (what.includes('打架') && p.money > 5e4) return ask('私了还是不私了', '对方说赔钱就出谅解书。', [
+    { l: '赔钱私了', n: '拿到谅解书能从轻判', w: 4, f: () => { const c = Math.min(p.money * .6, 8e4); p.money -= c; log(`赔了 ${money(c)}，拿到了谅解书。`); imprison(p, 0, '故意伤害罪', '判了缓刑'); } },
+    { l: '不赔', n: '', w: 1, f: () => imprison(p, 1 + Math.floor(R() * 2), '故意伤害罪') },
+  ]);
+  imprison(p, what.includes('毒品') ? 3 + Math.floor(R() * 5) : 1 + Math.floor(R() * 2), what.includes('毒品') ? '运输毒品罪' : what.includes('偷') ? '盗窃罪' : '故意伤害罪');
+}
+function imprison(p, years, crime, txt) {
+  p.record = true; p.crimes = (p.crimes || []).concat(crime);
+  p.bio.push(`${p.age}岁因${crime}${years ? `入狱${years}年` : '被判刑'}`);
+  if (p.job && PUBLIC_JOBS.includes(p.job.name)) { log('被单位开除了公职。', 'bad'); p.job = null; p.stage = '打工'; p.jobAt = p.age + 1; }
+  if (!years) { log(`${txt || '判了缓刑'}，罪名是${crime}。从此有了案底。`, 'bad'); p.happy -= 10; return; }
+  log(`被判有期徒刑${years}年，罪名是${crime}。`, 'bad big');
+  p.stage = '服刑'; p.job = null; p.income = 0; p.releaseAge = p.age + years; p.happy -= 25;
+  if (p.married && R() < .4) { p.married = false; p.divorced = true; log('入狱后不久，对方提出了离婚。', 'bad'); }
+}
+function prisonYear(p) {
+  if (p.age >= p.releaseAge) {
+    log('刑满释放。走出大门那天，外面的世界变了不少。', 'big');
+    p.stage = '打工'; p.happy += 10;
+    return afterRecord(p);
+  }
+  log(pick(['在监狱的车间里踩缝纫机。', '家里人来探视，隔着玻璃说了二十分钟话。', '表现好，减了几个月刑。', '在里面读完了一门文化课。']), 'quiet');
+}
+function afterRecord(p) {
+  const home = p.region || (p.hukou.local ? p.prov : p.hukou.prov), loc = p.region || '县城';
+  ask('出狱以后', '找工作要开无犯罪记录证明，大公司和体制内都去不了了。' + (p.kids ? '孩子以后考公、参军，政审也会受影响。' : ''), [
+    { l: '回老家跟亲戚干活', n: '', w: 3, f: () => { setJob(p, '技术工', home, loc); p.job.desc = '跟着亲戚干装修'; log('回了老家，跟着表哥干装修。'); } },
+    { l: '打零工、送外卖', n: '有的平台审核过不了', w: 2, f: () => { setJob(p, p.year >= 2015 && R() < .5 ? '外卖骑手' : '建筑工', home, p.region || '省会'); log(`在城里${p.job.desc}。`); } },
+    { l: '自己摆摊', n: '', w: 2, f: () => { setJob(p, '个体户', home, loc); p.job.desc = '摆摊卖小吃'; log('在夜市支了个摊子。'); } },
+    { l: '跟着里面认识的人混', n: '来钱快，风险大', w: .5, f: () => { setJob(p, '个体户', home, p.region || '省会'); p.job.desc = '跟着狱友做“生意”'; p.reoffend = true; log('跟着在里面认识的人做起了说不清的“生意”。'); } },
+  ]);
+}
+
+/* ===================== 香港、澳门、台湾 ===================== */
+const RNAME = {
+  香港: { s: '陈李黄张梁林刘吴何王郑杨邓冯罗麦曾谭', old: { m: ['国强','志明','伟强','永康','家辉','志伟'], f: ['丽娟','美玲','玉珍','淑仪','丽华','惠芳'] }, new: { m: ['家豪','俊杰','子轩','浩然','俊熙','卓轩','嘉乐'], f: ['嘉欣','咏诗','凯琳','晓彤','芷晴','颖琳','乐瑶'] },
+    en: { m: ['Kelvin','Ivan','Eric','Jason','Kenneth','Raymond','Marco'], f: ['Karen','Michelle','Winnie','Ada','Cherry','Vivian','Joyce'] } },
+  澳门: { s: '陈李黄梁何吴林张郑区冯刘', old: { m: ['国华','志强','永祥','家荣'], f: ['丽珍','美华','玉兰','惠玲'] }, new: { m: ['家俊','子朗','浩贤','嘉豪'], f: ['嘉怡','芷琪','颖欣','晓晴'] } },
+  台湾: { s: '陈林黄张李王吴刘蔡杨许郑谢洪郭邱曾廖', old: { m: ['志明','建宏','俊雄','文雄','明德','国华'], f: ['淑芬','美玲','秀英','丽华','淑惠','美惠'] }, mid: { m: ['家豪','志豪','冠宇','宗翰','俊宏','承翰'], f: ['雅婷','怡君','佳颖','怡婷','雅雯','郁婷'] }, new: { m: ['宥廷','承恩','柏宇','宇翔','禹安','品睿'], f: ['品妍','子晴','语彤','以晴','芯妤','诗涵'] } },
+};
+function regionName(male, R0, by) {
+  const n = RNAME[R0], set = by < 1975 ? n.old : (by < 2000 && n.mid) || n.new;
+  const cn = pick([...n.s]) + pick(set[male ? 'm' : 'f']);
+  return n.en && by >= 1965 && R() < .7 ? `${pick(n.en[male ? 'm' : 'f'])} ${cn}` : cn;
+}
+const RPARENTS = {
+  香港: { old: [['父母是从内地逃难来的，一家人住在山边的木屋区。'],['父亲在工厂做工，母亲在家穿胶花帮补家计。'],['父亲是小商店的伙计。'],['父亲在洋行做文员。'],['家里做出入口生意。']],
+          new: [['一家人挤在劏房里，父亲做地盘散工。'],['住公屋，父母都是打工仔。'],['父亲是公务员，母亲是文员，一家住居屋。'],['父母都是专业人士，住私人屋苑。'],['家里有好几个物业，父亲是商人。']] },
+  澳门: { old: [['父母在码头和小工厂打散工。'],['父亲做小贩，母亲在神香厂做工。'],['父亲在商店打工。'],['父亲是公务员。'],['家里做生意。']],
+          new: [['父母都在赌场做清洁和保安。'],['父亲是荷官，母亲在酒店上班。'],['父母一个是公务员，一个是老师。'],['父亲在赌场做主管。'],['家里有几间铺位收租。']] },
+  台湾: { old: [['父母是佃农，靠租来的几分地过日子。'],['父亲在乡下种田，母亲接家庭代工。'],['父亲在工厂做工，一家人住在透天厝里。'],['父亲是公务员。'],['家里开工厂，做外销生意。']],
+          new: [['父母做工，房租压得喘不过气。'],['父母都在工厂上班。'],['父亲是工程师，母亲是老师。'],['父亲在科学园区当主管。'],['家里在台北有好几间房子。']] },
+};
+function startRegion(R0, by) {
+  clearTimeout(timer);
+  const S = SAR[R0];
+  const p = { by, prov: R0, region: R0, year: by, age: 0, alive: true, bio: [], money: 0, income: 0, lifeIncome: 0, kids: 0, kidsAges: [], married: false, hist: [] };
+  p.male = R() < 106 / 206;
+  p.locale = pick(S.places); p.city = p.locale;
+  p.hukou = { prov: R0, city: p.locale, rural: false, local: true };
+  p.eth = R0 === '台湾' ? wpick(['汉族（闽南）', '汉族（客家）', by <= 1970 ? '汉族（外省）' : '汉族（外省第二代）', `原住民（${pick(['阿美族','泰雅族','排湾族','布农族'])}）`], [70, 14, by <= 1970 ? 14 : 12, 2.5]) : '华人';
+  p.name = regionName(p.male, R0, by);
+  p.cls = wpick([1,2,3,4,5], by <= 1970 && R0 !== '台湾' ? [35,30,22,9,4] : [18,24,28,20,10]);
+  const ow = by <= 1960 ? [22,24,22,18,14] : by <= 1970 ? [30,32,22,10,6] : by <= 1990 ? [45,40,12,3] : [55,38,7];
+  p.order = wpick(ow.map((_, i) => i + 1), ow);
+  p.fam = [2e4, 1e5, 4e5, 1.2e6, 4e6][p.cls - 1] * S.wi(by + 25);
+  p.edu = clamp(50 + (p.cls - 3) * 5 + gauss() * 12, 5, 95);
+  p.health = clamp(78 + p.cls * 1.5 + gauss() * 6, 40, 98); p.happy = 62;
+  p.le = interp(S.le, by) + (p.male ? -3 : 3);
+  const i0 = interp(S.i0, by); p.inf = { i0, i1: i0 / 10 };
+  p.gompA = calibrate(p.le + 3, p.inf);
+  p.stage = '童年'; p.degree = '—'; p.job = null; p.workProv = R0; p.workLoc = R0;
+  P = p; pending = null; paused = false; curEvs = null;
+  $('intro').hidden = true; $('game').hidden = false; $('dStamp').hidden = true;
+  $('chron').innerHTML = ''; $('btnPause').textContent = '暂停'; $('gAuto').checked = auto; syncSeg();
+  window.scrollTo(0, 0);
+  newYear();
+  const jin = 6.4 + gauss() * .8;
+  log(`出生在${R0}${p.locale}。是个${p.male ? '男孩' : '女孩'}，${Math.floor(jin)}斤${Math.round((jin % 1) * 10)}两。`, 'big');
+  const par = RPARENTS[R0][by < 1975 ? 'old' : 'new'][p.cls - 1];
+  log(R0 === '台湾' && p.eth.includes('外省') && by <= 1960 && p.cls <= 3 ? '父亲是跟着部队来台湾的老兵，一家人住在眷村里。' : pick(par));
+  if (p.eth.includes('原住民')) log(`是${p.eth.slice(4, -1)}的孩子。`, 'quiet');
+  if (p.order > 1) log(`家里排行老${'二三四五'[p.order - 2]}。`, 'quiet');
+  p.bio.push(`${by}年出生在${R0}${p.locale}一个家境${CLS[p.cls - 1]}的家庭`);
+  render(); schedule();
+}
+function twService(p, next) {
+  if (p.region !== '台湾' || !p.male || p.served) return false;
+  p.served = true;
+  const yrs = p.by < 1994 ? 2 : p.by < 2005 ? 0 : 1;
+  if (!yrs) { log('服了四个月的军事训练役。', 'quiet'); return false; }
+  log(`入伍服兵役，${yrs}年。`, 'big'); p.stage = '服役'; p.gradAge = p.age + yrs; p.afterNext = next; p.job = null;
+  return true;
+}
+function regionLife(p) {
+  const a = p.age, y = p.year, R0 = p.region;
+  if (p.stage === '服役' && a >= p.gradAge) { log('退伍了。'); p.stage = '求职'; p.afterNext === 'grad' ? regionCareer(p) : regionWork(p); return true; }
+  if (p.stage === '打工' && a >= (p.jobAt || 0)) { regionWork(p); return true; }
+  if (a === 3) { log(R0 === '香港' ? (y < 1980 ? '没上幼稚园，整天在街上跟邻居小孩玩。' : '上了幼稚园。为了进名校，父母带着去面试了好几间。') : R0 === '台湾' && y < 1980 ? '在三合院前跟堂兄弟姐妹玩。' : '上了幼稚园。', 'quiet'); return true; }
+  if (a === 6) { p.stage = '小学'; log(R0 === '台湾' ? (y < 1968 ? '上国民学校了。' : '上国小了。') : R0 === '澳门' ? '上小学了，学校是天主教会办的。' : '上小一了。'); return true; }
+  if (a === 12 && p.stage === '小学') { regionMiddle(p); return true; }
+  if (a === 15 && p.stage === '初中') { regionUpper(p); return true; }
+  if (p.stage === '复读' && a >= p.retakeAge) { p.stage = '高中'; regionUni(p); return true; }
+  if (a >= 18 && p.stage === '高中') { regionUni(p); return true; }
+  if (a >= 18 && p.stage === '职高') {
+    p.degree = p.degree.replace('在读', '');
+    if (R0 === '台湾' && y >= 1995 && R() < .7) { log('高职毕业，考上了科技大学。'); enterUniR(p, '本地'); return true; }
+    regionWork(p); return true;
+  }
+  if (p.stage === '大学' && a >= p.gradAge) { regionGrad(p); return true; }
+  if (p.stage === '研究生' && a >= p.gradAge) { regionGrad(p, true); return true; }
+  return false;
+}
+function regionMiddle(p) {
+  const y = p.year, R0 = p.region;
+  const drop = R0 === '台湾' ? interp([[1962,.4],[1968,.1],[1985,.03],[2000,.01]], y) : interp([[1962,.45],[1971,.25],[1978,.05],[1990,.01]], y);
+  p.degree = '小学';
+  if (R() < drop * (p.cls <= 2 ? 1.5 : .6)) { log(R0 === '台湾' ? '小学毕业就没再升学，去工厂当学徒。' : '小学毕业就出来做工，在工厂里车衫、穿胶花。', 'big'); p.bio.push('小学毕业就出来做工'); setJob(p, '工厂工人', R0, R0); return; }
+  p.stage = '初中';
+  if (R0 === '香港') log(`${y >= 1978 ? '升中派位' : '考升中试'}，进了一间 ${p.edu > 65 ? 'Band 1' : p.edu > 48 ? 'Band 2' : 'Band 3'} 中学。`);
+  else log(R0 === '台湾' ? (y < 1968 ? '考上了初中。' : '上了国中，每天第八节课都在考试。') : '升上了中学。');
+}
+function regionUpper(p) {
+  const y = p.year, R0 = p.region;
+  const rate = R0 === '台湾' ? interp([[1965,.3],[1980,.35],[2000,.55],[2014,.6]], y) : R0 === '香港' ? interp([[1965,.3],[1980,.6],[1990,.85],[2012,.95]], y) : interp([[1965,.25],[1990,.6],[2010,.9]], y);
+  if (R() < sig((p.edu - 50) / 8 + Math.log(rate / (1 - rate)))) {
+    p.stage = '高中'; p.degree = '高中在读';
+    log(R0 === '台湾' ? `考上了${p.edu > 72 ? '第一志愿的明星高中' : '高中'}。` : R0 === '香港' ? (y < 2012 ? '会考成绩够升中六预科。' : '升上高中，准备考文凭试（DSE）。') : '升上了高中。');
+    return;
+  }
+  const voc = R0 === '台湾' ? '高职' : R0 === '香港' ? '职训局（VTC）的课程' : '职业技术课程';
+  ask('初中毕业', '成绩不够升高中。', [
+    { l: `读${voc}`, n: '学一门手艺', w: 3, f: () => { p.stage = '职高'; p.degree = (R0 === '台湾' ? '高职' : '职业课程') + '在读'; log(`去读了${voc}。`); } },
+    { l: '出来做工', n: '', w: 2, f: () => { p.degree = '初中'; regionWork(p); } },
+  ]);
+}
+function regionUni(p) {
+  const y = p.year, R0 = p.region;
+  const rate = R0 === '香港' ? interp([[1970,.05],[1980,.08],[1990,.2],[1995,.35],[2005,.4],[2015,.6],[2026,.7]], y) : R0 === '台湾' ? interp([[1960,.2],[1975,.25],[1990,.4],[2000,.65],[2008,.95]], y) : interp([[1980,.2],[2000,.5],[2015,.85]], y);
+  const s = p.edu + gauss() * 8, pass = R() < sig((s - 50) / 7 + Math.log(rate / (1 - rate))), top = pass && s > 68;
+  const exam = R0 === '香港' ? (y < 1979 ? '高级程度会考' : y < 2012 ? '高考（A-Level）' : '文凭试（DSE）') : R0 === '台湾' ? (y < 1994 ? '大学联考' : '学测') : '升学考试';
+  log(`参加${exam}，${pass ? (top ? '考得很好。' : '成绩还可以。') : '成绩不理想。'}`, 'big');
+  const opts = [];
+  if (pass) opts.push({ l: R0 === '香港' ? (top ? '读港大、中大或科大' : '读本地大学学士') : R0 === '台湾' ? (top ? '读台大、清大、成大这些国立大学' : y >= 1995 ? '读私立大学' : '读大学') : '读澳门大学或理工', n: '', w: 5, f: () => enterUniR(p, top ? '名校' : '本地') });
+  if (!pass && R0 === '台湾' && y < 2008 && !p.retook) opts.push({ l: '去补习班重考', n: '南阳街的补习班挤满了重考生', w: 2, f: () => { p.retook = true; p.edu += 5; p.stage = '复读'; p.retakeAge = p.age + 1; log('去台北南阳街的补习班，又拼了一年。'); } });
+  if (R0 === '香港' && y >= 2001 && !pass) opts.push({ l: '读副学士 / 高级文凭', n: '自资，一年六七万港币，读得好能衔接学士', w: 3, f: () => { p.money -= 12e4; enterUniR(p, '副学士'); } });
+  if (R0 !== '台湾' && y >= (R0 === '香港' ? 2012 : 1990)) opts.push({ l: '去内地读大学', n: R0 === '香港' ? '凭文凭试成绩就能申请，学费便宜' : '保送名额不少', w: 2, f: () => enterUniR(p, '内地') });
+  if (R0 !== '台湾') opts.push({ l: '去台湾读大学', n: '侨生名额，学费便宜', w: 1, f: () => enterUniR(p, '台湾') });
+  if (p.fam > 8e5 * SAR[R0].wi(y)) opts.push({ l: '出国读大学', n: '英国、澳洲、加拿大、美国', w: 2, f: () => askAbroad(p, true) });
+  if (R0 === '澳门' && y >= 2004) opts.push({ l: '直接去赌场做荷官', n: '不用学历，月薪两万澳门元', w: pass ? 1 : 4, f: () => { p.degree = '高中'; setJob(p, '荷官', R0, R0); log('进了赌场培训做荷官，三班倒。'); p.bio.push('高中毕业做了荷官'); } });
+  opts.push({ l: '出来工作', n: '', w: pass ? 1 : 3, f: () => { p.degree = '高中'; regionWork(p); } });
+  ask(R0 === '台湾' ? '放榜' : '升学', '', opts);
+}
+function enterUniR(p, kind) {
+  const R0 = p.region;
+  p.stage = '大学'; p.tier = kind === '名校' ? '985' : kind === '副学士' ? '专科' : '本科'; p.job = null;
+  p.gradAge = p.age + (kind === '副学士' ? 2 : R0 === '香港' && p.year < 2012 ? 3 : 4);
+  p.degree = kind === '副学士' ? '副学士在读' : '学士在读';
+  p.major = pick(['商科','工程','电机','资讯工程','护理','社工','法律','文学','教育','会计']);
+  const where = kind === '内地' ? pick(['中山大学','暨南大学','华侨大学','北京大学','复旦大学'])
+    : kind === '台湾' ? pick(['台湾大学','政治大学','成功大学','台湾师范大学'])
+    : kind === '名校' ? (R0 === '香港' ? pick(['香港大学','香港中文大学','香港科技大学']) : R0 === '台湾' ? pick(['台湾大学','清华大学（新竹）','阳明交通大学','成功大学']) : '澳门大学')
+    : R0 === '香港' ? pick(['理工大学','城市大学','浸会大学','岭南大学']) : R0 === '台湾' ? pick(['辅仁大学','东吴大学','逢甲大学','文化大学','淡江大学','台北科技大学']) : pick(['澳门大学','澳门理工大学','澳门旅游学院']);
+  log(kind === '副学士' ? '读了副学士。' : `考进了${where}，读${p.major}。`, 'big');
+  p.bio.push(kind === '副学士' ? '读了副学士' : `在${where}读${p.major}`);
+}
+function regionGrad(p, master) {
+  const R0 = p.region;
+  p.degree = master ? '硕士' : p.degree.replace('在读', '');
+  log(`${master ? '硕士' : '大学'}毕业了。`, 'big');
+  if (p.degree === '副学士' && R() < .3) { log('副学士成绩好，衔接上了大学学士课程。', 'good'); p.degree = '学士在读'; p.stage = '大学'; p.gradAge = p.age + 2; return; }
+  if (twService(p, 'grad')) return;
+  const opts = [];
+  if (!master && p.degree === '学士') opts.push({ l: R0 === '台湾' ? '考研究所' : '读硕士', n: R0 === '台湾' ? '两年，班上一半人都在考' : '一年制授课式硕士，学费十几万港币', w: R0 === '台湾' ? 3 : 1, f: () => { if (R() < .5 + (p.edu - 55) / 80) { p.stage = '研究生'; p.gradAge = p.age + (R0 === '台湾' ? 2 : 1); log('考上了研究所。'); p.bio.push('读了硕士'); } else { log('研究所没考上。'); regionCareer(p); } } });
+  opts.push({ l: '找工作', n: '', w: 4, f: () => regionCareer(p) });
+  if (p.fam > 6e5) opts.push({ l: '出国读硕士', n: '', w: 1, f: () => askAbroad(p) });
+  ask('毕业去向', '', opts);
+}
+function regionCareer(p) {
+  const y = p.year, R0 = p.region, e = p.edu;
+  const set = (name, txt) => () => { setJob(p, name, R0, R0); if (txt) p.job.desc = txt; log(`${p.job.desc}。第一年大约 ${money(p.income)}（折合人民币）。`); p.bio.push(p.job.desc.replace(/，.*/, '')); };
+  const mainland = (prov, loc, city, mult, txt, bio) => () => { setJob(p, '私企白领', prov, loc, city); p.baseInc *= mult; p.income = Math.round(p.income * mult); log(txt); p.bio.push(bio); };
+  let opts;
+  if (R0 === '香港') opts = [
+    { l: '考政府工', n: '政务主任、行政主任，几十个人争一个位', ok: e > 55, w: 2, f: () => { if (R() < .15 + (e - 60) / 120) set('香港公务员')(); else { log('政府工没考上。'); set('文员')(); } } },
+    { l: '银行 / 金融', n: '中环上班，人工高，压力大', ok: e > 60, w: 3, f: set('金融从业', '在中环的银行上班') },
+    { l: '会计师楼（四大）', n: '审计季天天通宵', ok: e > 55, w: 2, f: set('会计师') },
+    { l: '护士 / 社工', n: '', w: 2, f: set('护士社工') },
+    { l: '写字楼文员 / 零售', n: '', w: 3, f: set('文员') },
+    ...(y >= 2015 ? [{ l: '北上深圳工作', n: '大湾区，人工低一点，楼价便宜很多', w: 1, f: mainland('广东', '一线城市', '深圳', 1.4, '去了深圳一间科技公司，每天过关返工。', '北上深圳工作') }] : []),
+    ...((y >= 1985 && y <= 1997) || y >= 2020 ? [{ l: '移民', n: y <= 1997 ? '回归前很多人移民加拿大、澳洲' : '这几年很多人移民英国、加拿大', ok: p.fam + p.money > 3e5, w: 1, f: () => { const c = y <= 1997 ? pick(['加拿大', '澳大利亚']) : pick(['英国', '加拿大', '澳大利亚']); log(`举家移民去了${c}。`, 'big'); setAbroadJob(p, c); } }] : []),
+  ];
+  else if (R0 === '澳门') opts = [
+    { l: '考公务员', n: '人工高、福利好，竞争激烈', ok: e > 50, w: 2, f: () => { if (R() < .2 + (e - 55) / 100) set('澳门公务员')(); else { log('公务员没考上。'); set('酒店员工')(); } } },
+    ...(y >= 2004 ? [{ l: '进赌场', n: '从荷官做起，可以升主管', w: 3, f: set('荷官') }] : []),
+    { l: '酒店 / 旅游业', n: '', w: 2, f: set('酒店员工') },
+    { l: '做老师', n: '', w: 1, f: set('教师', '在中学当老师') },
+    ...(y >= 2015 ? [{ l: '去横琴 / 大湾区发展', n: '', w: 1, f: mainland('广东', '地级市', '珠海', 1.3, '去了珠海横琴的一间公司上班。', '去大湾区工作') }] : []),
+  ];
+  else opts = [
+    { l: '科技业', n: '竹科、南科的半导体厂，钱多但常常爆肝', ok: e > 60 && y >= 1985, w: 3, f: set('科技业工程师') },
+    { l: '考公务员（高普考）', n: '铁饭碗，录取率不到一成', w: 2, f: () => { if (R() < .12 + (e - 55) / 150) set('台湾公务员')(); else { log('高普考没考上。'); set('服务业')(); } } },
+    { l: '考教师甄试', n: '很多“流浪教师”考了好几年', w: 1, f: () => { if (R() < .25) set('台湾教师')(); else { log('教甄没上，先去补习班教书。'); set('服务业', '在补习班教书')(); } } },
+    { l: '中小企业 / 服务业', n: y >= 2009 ? '起薪两万多新台币，人称“22K”' : '', w: 3, f: set('服务业', '在一家中小企业上班') },
+    ...(y >= 1990 ? [{ l: '去大陆当台干', n: '工资高一截，一年回来几次', w: y < 2015 ? 2 : 1, f: mainland(pick(['上海', '江苏', '广东']), '一线城市', null, 1.5, '去了大陆的台资厂当干部。', '去大陆当台干') }] : []),
+    ...(y < 1990 ? [{ l: '去美国读书', n: '“来来来，来台大；去去去，去美国”', ok: e > 65, w: 1, f: () => askAbroad(p) }] : []),
+    ...(y >= 2004 ? [{ l: '去澳洲打工度假', n: '一年，在农场和工厂打工存钱', w: 1, f: () => { p.money += 8e4; p.happy += 4; log('去澳洲打工度假一年，在肉厂和农场打工存了一笔钱。'); set('服务业', '回来后在一家中小企业上班')(); } }] : []),
+  ];
+  ask('找工作', '', opts);
+}
+function regionWork(p) {
+  const y = p.year, R0 = p.region;
+  if (twService(p, 'work')) return;
+  const set = (name, txt) => () => { setJob(p, name, R0, R0); if (txt) p.job.desc = txt; log(`${p.job.desc}。`); p.bio.push(p.job.desc.replace(/，.*/, '')); };
+  let opts;
+  if (R0 === '香港') opts = [
+    ...(y < 1995 ? [{ l: '入工厂', n: '制衣、塑胶、电子厂', w: 3, f: set('工厂工人', pick(['在制衣厂车衫', '在塑胶厂啤胶', '在电子厂装收音机'])) }] : []),
+    { l: '做地盘', n: '辛苦，日薪高', w: 2, f: set('建筑工', '在地盘扎铁') },
+    { l: '饮食业', n: '茶餐厅、酒楼', w: 3, f: set('茶餐厅') },
+    { l: y >= 2016 ? '送外卖' : '做运输送货', n: '', w: 2, f: set('外卖骑手', y >= 2016 ? '送外卖' : '开货车送货') },
+    { l: '零售', n: '', w: 2, f: set('文员', '在商场做售货员') },
+  ];
+  else if (R0 === '澳门') opts = [
+    ...(y >= 2004 ? [{ l: '去赌场做荷官', n: '不用学历，人工高', w: 5, f: set('荷官') }] : [{ l: '入工厂', n: '制衣厂、神香厂', w: 3, f: set('工厂工人') }]),
+    { l: '酒店 / 饮食', n: '', w: 2, f: set('酒店员工') },
+    { l: '做建筑', n: '', w: 1, f: set('建筑工') },
+    { l: '做小贩', n: '', w: 1, f: set('个体户', '在街市摆档') },
+  ];
+  else opts = [
+    { l: '进工厂当作业员', n: y < 1990 ? '加工出口区到处在招工' : '', w: 3, f: set('作业员') },
+    { l: '做服务业', n: '', w: 2, f: set('服务业') },
+    { l: '开计程车 / 货车', n: '', w: 1, f: set('建筑工', pick(['开计程车', '开货车'])) },
+    { l: '在夜市摆摊', n: '', w: 1, f: set('个体户', '在夜市摆摊') },
+    ...(y < 1985 ? [{ l: '回家种田', n: '', w: 2, f: set('务农', '回家种田') }] : []),
+  ];
+  ask('找工作', `${p.degree === '—' ? '没读什么书' : p.degree + '学历'}。`, opts);
+}
+function regionMarry(p) {
+  const y = p.year, R0 = p.region, S = SAR[R0];
+  p.married = true; p.marryAge = p.age;
+  log(`和${pick(['同事', '大学同学', '朋友介绍认识', '在交友软件上认识', '中学同学'])}的${p.male ? '她' : '他'}结婚了。${R0 === '台湾' ? '办了一场流水席。' : '在酒楼摆了喜酒。'}`, 'big');
+  p.happy += 10; p.bio.push(`${p.age}岁结婚`);
+  if (p.house) return;
+  const price = S.hp * S.area * interp(S.hpi, y), dp = price * .3, can = p.money + Math.max(0, p.fam) * .8;
+  const opts = [];
+  if (R0 === '香港') opts.push({ l: '申请公屋', n: '轮候要五六年，先和父母住', ok: p.income < S.wage * 1.3, w: 3, f: () => { p.house = '和父母住'; p.pubHouse = p.age + 5; log('交了公屋申请，先挤在父母家。'); } });
+  if (R0 === '香港' && y >= 1978) opts.push({ l: '抽居屋', n: '政府资助出售的房子，要抽签', w: 2, f: () => { if (R() < .15) buyHouse(p, price * .6, '抽中了居屋'); else { p.house = '租房'; log('居屋没抽中，先租房住。'); } } });
+  if (R0 === '澳门') opts.push({ l: '申请经屋', n: '经济房屋，要排队抽签', w: 2, f: () => { if (R() < .25) buyHouse(p, price * .4, '抽中了经屋'); else { p.house = '租房'; log('经屋没抽中，先租房。'); } } });
+  opts.push({ l: R0 === '台湾' ? '买房' : '买楼', n: can >= dp ? `${money(price)}，首付三成，供三十年` : `首付要 ${money(dp)}，凑不齐`, ok: can >= dp, w: 3, f: () => buyHouse(p, price, R0 === '台湾' ? '买了房子' : '买了一层楼') });
+  opts.push({ l: '租房', n: '', w: 2, f: () => { p.house = '租房'; log('先租房住。'); } });
+  opts.push({ l: '和父母住', n: '', w: 2, f: () => { p.house = '和父母住'; log('婚后和父母住在一起。'); } });
+  ask('婚后住哪', R0 === '香港' ? '香港楼价是全世界最贵的之一，很多年轻人一辈子都“上不了车”。' : '', opts);
+}
+function regionKids(p) {
+  p.askedKids = true;
+  const y = p.year, S = SAR[p.region], old = y < 1975;
+  ask('要孩子吗', old ? '那时候家家都有好几个孩子。' : `${p.region}的生育率是全世界最低的之一，在这里养大一个孩子要花 ${money(S.kid * 18 * S.wi(y))}。`, old ? [
+    { l: '顺其自然', n: '', w: 4, f: () => { p.wantKids = 3 + Math.floor(R() * 2); } },
+    { l: '两个就够', n: '', w: 2, f: () => { p.wantKids = 2; } },
+  ] : [
+    { l: '生一个', n: '', w: 4, f: () => { p.wantKids = 1; } },
+    { l: '生两个', n: '', w: 2, f: () => { p.wantKids = 2; } },
+    { l: '不要孩子', n: '', w: y >= 2000 ? 2 : .5, f: () => { p.wantKids = 0; log('两个人商量好了，不要孩子。'); p.bio.push('没有要孩子'); } },
+  ]);
+}
+function regionRetire(p) {
+  const y = p.year, inc = p.income / 12;
+  let pen, txt;
+  if (p.pensionType === '海外') { pen = inc * .4; txt = '当地的退休金'; }
+  else if (p.region === '香港') {
+    const startY = p.by + p.jobStart;
+    if (p.pensionType === '公务员') { pen = inc * (startY < 2000 ? .5 : .3); txt = startY < 2000 ? '公务员长俸' : '公务员公积金'; }
+    else if (y >= 2000 && p.pensionType === '职工') { pen = inc * .3 * Math.min(40, y - Math.max(2000, startY)) / 40 + 1500; txt = '强积金加长者津贴'; }
+    else { pen = 1500; txt = '长者津贴（“生果金”）'; }
+  } else if (p.region === '澳门') { pen = p.pensionType === '公务员' ? inc * .6 : 3400 + inc * .05; txt = p.pensionType === '公务员' ? '公务员退休金' : '养老金加公积金'; }
+  else { pen = p.pensionType === '公务员' ? inc * (y < 2018 ? .75 : .6) : p.pensionType === '职工' ? Math.max(3500, inc * .35) : 1000; txt = p.pensionType === '公务员' ? '公教人员退休金' : p.pensionType === '职工' ? '劳保年金' : '国民年金'; }
+  p.pension = Math.round(pen); p.retY = y; p.stage = '退休'; p.jobName = p.job.name; p.job = null;
+  log(`退休了。每月领${txt}，折合人民币约 ${money(p.pension)}。`, 'big');
+  p.bio.push(`${p.age}岁退休`);
+}
+function regionHistory(p) {
+  const y = p.year, a = p.age, R0 = p.region, H = t => log(t, 'era');
+  if (R0 === '香港') {
+    if (y === 1953 && a >= 2) H('石硖尾木屋区一场大火，五万多人无家可归。政府开始建徙置大厦，后来的公屋就从这里开始。');
+    if (y === 1962 && a >= 8) H('边境涌来大批从内地过来的人，很多人家里多了投靠的亲戚。');
+    if (y === 1967 && a >= 6) H('六七暴动，街上出现土制炸弹，晚上实行宵禁。');
+    if (y === 1973 && a >= 18) { H('股灾，恒生指数一年跌掉九成，很多人输光了积蓄。'); if (p.money > 0 && R() < .3) p.money *= .5; }
+    if (y === 1974 && a >= 10) H('廉政公署成立。');
+    if (y === 1979 && a >= 6) H('地铁通车了。');
+    if (y === 1984 && a >= 10) H('中英联合声明签署，香港将在1997年回归。');
+    if (y === 1990 && a >= 10) H('移民潮，身边好几家人移民去了加拿大和澳洲。');
+    if (y === 1997 && a >= 5) H('7月1日，香港回归。下半年亚洲金融风暴，楼价开始一路跌。');
+    if (y === 2003) { if (a >= 3) H('非典。全城戴口罩，学校停课，淘大花园整座封了。'); if (p.mortgageLeft > 0 && R() < .6) { log('楼价比买的时候跌了六成，成了“负资产”。', 'bad'); p.happy -= 10; } }
+    if (y === 2008 && a >= 18) H('金融海啸，身边不少人被裁员，有人买的雷曼迷你债血本无归。');
+    if (y === 2019 && a >= 6) H('社会动荡了大半年，街上常有冲突，很多店铺落了闸。');
+    if (y === 2021 && a >= 6) H('身边很多朋友举家移民去了英国、加拿大。');
+    if (y === 2022 && a >= 3) H('第五波疫情，医院爆满，很多老人走在了这一波。');
+    if (y === 2023 && a >= 10) H('通关了，周末北上深圳吃饭、按摩、逛超市成了新潮流。');
+  } else if (R0 === '澳门') {
+    if (y === 1999 && a >= 5) H('12月20日，澳门回归。');
+    if (y === 2002 && a >= 10) H('赌权开放，外资赌场陆续进来。');
+    if (y === 2004 && a >= 10) H('金沙开业，赌场一间接一间开，到处都在招荷官。');
+    if (y === 2008 && a >= 10) { H('现金分享开始了，每个永久居民每年都能领一笔钱。'); p.fam += 8000; }
+    if (y === 2013 && a >= 10) H('博彩收入创新高，是拉斯维加斯的七倍。');
+    if (y === 2020 && a >= 3) H('疫情，赌场停业，游客几乎绝迹，很多人放无薪假。');
+    if (y === 2023 && a >= 10) H('通关后游客回来了，街上又热闹起来。');
+  } else {
+    if (y === 1951 && p.cls <= 2) H('三七五减租，后来又“耕者有其田”，家里分到了自己的地。');
+    if (y === 1955 && a >= 5) H('戒严时期，大人在外面说话都很小心。');
+    if (y === 1968 && a >= 5 && a <= 15) H('九年国民义务教育开始，上国中不用再考了。');
+    if (y === 1974 && a >= 10) H('十大建设陆续开工，加工出口区的工厂到处招人。');
+    if (y === 1987 && a >= 10) { H('解除戒严，开放大陆探亲。'); if (p.eth.includes('外省')) log('父亲第一次回大陆老家，见到了分开快四十年的亲人。', 'big'); }
+    if (y === 1990 && a >= 20) H('股市冲上一万二千点，号子里挤满了人，后来又崩了下来。');
+    if (y === 1996 && a >= 18) H('第一次全民直选。');
+    if (y === 1999 && a >= 3) { H('九二一大地震。'); if (['台中', '南投', '彰化'].includes(p.city) && R() < .003) return die(p, '地震'); }
+    if (y === 2003 && a >= 3) H('非典，和平医院封院。');
+    if (y === 2009 && a >= 20) H('金融海啸，很多工厂放“无薪假”。');
+    if (y === 2020 && a >= 3) H('疫情，大家排队买实名制口罩。');
+    if (y === 2024 && p.male && a >= 18 && a <= 19) H('义务役恢复为一年。');
+  }
+  if (y === 2008 && a >= 6) log('北京奥运会开幕。', 'quiet');
+}
+const REGION_FLAVOR = {
+  香港: [
+    [3, 11, () => true, p => byYear(p, [[1980, ['在街边玩跳飞机、打波子。', '放学去帮家里看档口。', '暑假在家穿胶花赚零用钱。']], [2005, ['放学后去补习社。', '周末去麦当劳开生日会。', '追看 TVB 的剧。']], [9999, ['放学后赶去上三个兴趣班。', '玩 Switch 玩到半夜。', '周末去公园放风筝。']]])],
+    [12, 17, () => true, p => byYear(p, [[2012, ['每天补习到九点。', '跟同学去旺角逛信和。', '暑假去快餐店做暑期工。']], [9999, ['每天补习到九点。', '跟同学去旺角逛街。', 'DSE 前一个月每天只睡五个钟。']]])],
+    [18, 45, p => p.stage === '工作', () => pick(['每天挤港铁返工。', '周末去离岛行山。', '年初二去车公庙求签。', '跟朋友去澳门玩了一晚。', '加班到十一点，搭尾班车回家。', '去日本旅行了一次。'])],
+    [45, 95, () => true, p => byYear(p, [[2010, ['每天去茶楼饮早茶。', '跟老街坊打麻将。', '血压偏高，开始食药。']], [9999, ['每天去公园晨运、耍太极。', '去深圳看牙，便宜好多。', '每天去茶楼饮茶看报纸。', '用长者两元乘车优惠到处去。']]])],
+  ],
+  澳门: [
+    [3, 17, () => true, () => pick(['放学去大三巴附近玩。', '格兰披治大赛车那几天，整条街都是人。', '去氹仔吃葡挞。', '跟同学去关闸那边逛。'])],
+    [18, 60, p => p.stage === '工作', () => pick(['三班倒，作息常常乱掉。', '周末去拱北买菜，比澳门便宜一半。', '领了政府的现金分享。', '跟朋友去香港玩了一天。'])],
+    [55, 95, () => true, () => pick(['每天去公园晨运。', '跟老朋友饮茶。', '领了敬老金。'])],
+  ],
+  台湾: [
+    [3, 11, () => true, p => byYear(p, [[1985, ['家里第一台电视是大同牌的。', '看布袋戏《云州大儒侠》。', '暑假回阿嬷家抓青蛙。']], [9999, ['放学去巷口买鸡排珍奶。', '暑假回阿嬷家。', '去夜市套圈圈。', '农历七月不敢去海边玩水。']]])],
+    [12, 17, () => true, p => byYear(p, [[1990, ['学校规定男生理平头。', '每天考试考到天黑。', '偷偷看琼瑶小说。']], [9999, ['看《流星花园》。', '放学去补习班。', '跟同学去西门町。']]])],
+    [18, 45, p => p.stage === '工作', () => pick(['每天骑机车上班。', '中秋节全家烤肉。', '周末去垦丁。', '去日本玩了一趟。', '加班到半夜，买了碗卤肉饭当宵夜。'])],
+    [45, 95, () => true, () => pick(['每天早上去公园跳土风舞。', '去庙里拜拜。', '血糖偏高，开始控制饮食。', '跟老同学去泡温泉。'])],
+  ],
+};
 </script>
